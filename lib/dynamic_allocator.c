@@ -284,11 +284,11 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	}
 	new_size+= sizeOfMetaData();
 	// (regard that new size is not include meta_data && address is of the free space without meta_data) mego___o
-	struct BlockMetaData* blk = (void*)va - sizeOfMetaData();
+	struct BlockMetaData* blk = (struct BlockMetaData*)((void*)va- sizeOfMetaData());
 	struct BlockMetaData * tail = LIST_LAST(&block_list);
 
 	if((uint32)new_size > (uint32)blk->size){
-		uint32 required_size_to_expend = new_size - blk->size; //?
+		uint32 required_size_to_expend = new_size - blk->size;
 		if(blk!=tail){
 			struct BlockMetaData* next_blk = LIST_NEXT((struct BlockMetaData*)blk); //////the next element ?
 			   if(next_blk->is_free==1){
@@ -326,12 +326,13 @@ void *realloc_block_FF(void* va, uint32 new_size)
 				}
 			}
 		}
-		else if(blk==tail){
-			void * ret = sbrk(required_size_to_expend);
+		else if(blk==tail){//test again!!!!!!!!!!!!!!!
+			free_block(va);
+			void * ret = alloc_block_FF(new_size-sizeOfMetaData());
 			if(ret == (void*)-1){
 				return (void *)-1;//no size in heap
 			}else{
-				return (struct BlockMetaData*)((void*)tail + sizeOfMetaData()) ;
+				return (struct BlockMetaData*)((void*)ret);
 			}
 		}
 	}
