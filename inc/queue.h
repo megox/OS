@@ -294,6 +294,5 @@ struct {								\
 	((list1)->size) += ((list2)->size);		\
 } while (0)
 
-//#define	LIST_CLEAR(list)	(LIST_INIT(list))
-
+#define	LIST_CLEAR(list)	(LIST_INIT(list))
 #endif	/* !_SYS_QUEUE_H_ */

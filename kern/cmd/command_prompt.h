@@ -31,8 +31,7 @@ int execute_command(char *command_string);
 void run_command_prompt();
 void command_prompt_readline(const char *, char *);
 
-/*2024*/
+void Matched_command(char* nameofcomm,char* curcomm,bool* f,int * numofmatched,int i);
 int process_command(int number_of_arguments, char** arguments);
-void Matched_command(char*nameofcomm,char* curcomm,bool* f,int * numofmatched,int i);
 
 #endif	// !FOS_KERN_MONITOR_H

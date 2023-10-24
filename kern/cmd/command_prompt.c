@@ -1,7 +1,10 @@
 // Simple command-line kernel prompt useful for
 // controlling the kernel and exploring the system interactively.
 
+
+
 #include <kern/cmd/command_prompt.h>
+
 #include <kern/proc/user_environment.h>
 #include <kern/trap/kdebug.h>
 #include <kern/cons/console.h>
@@ -371,31 +374,33 @@ int execute_command(char *command_string)
 	return 0;
 }
 
-//
 void Matched_command(char*nameofcomm,char* curcomm,bool* f,int * numofmatched,int i){
-			int j=0,sizeofcomm=0;
-			while(nameofcomm[sizeofcomm]!='\0'){
-				if(curcomm[j]==nameofcomm[sizeofcomm]){
-					j++;
+	int j=0,sizeofcomm=0;
+	while(nameofcomm[sizeofcomm]!='\0'){
+		if(curcomm[j]==nameofcomm[sizeofcomm]){
+			j++;
+	}
+		sizeofcomm++;
+		if(curcomm[j]=='\0'){
+			if(sizeofcomm==j&&nameofcomm[sizeofcomm]=='\0'){
+				(*f) = 1;
 			}
-				sizeofcomm++;
-				if(curcomm[j]=='\0'){
-					if(sizeofcomm==j&&nameofcomm[sizeofcomm]=='\0'){
-						(*f) =1;
-					}
-				else{
+		else{
 
-						LIST_INSERT_HEAD( &foundCommands ,&commands[i]);
-						(*numofmatched)++;
-					}
-
-					break;
-				}
+				LIST_INSERT_TAIL( &foundCommands ,&commands[i]);
+				(*numofmatched)++;
 			}
+			break;
+		}
+	}
 }
 
 int process_command(int number_of_arguments, char** arguments)
 {
+
+	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
+	//Comment the following line before start coding...
+
 	bool found= 0;int targetcomm,numofmatched=0;
 	LIST_INIT(&foundCommands);
 	for(int i=0;i<NUM_OF_COMMANDS;i++){
@@ -407,19 +412,14 @@ int process_command(int number_of_arguments, char** arguments)
 	}
 	}
 	if(found==1){
-		if(number_of_arguments-1 ==commands[targetcomm].num_of_args||(commands[targetcomm].num_of_args==-1&&number_of_arguments>=2))
-		return targetcomm;
+		if(number_of_arguments-1 ==commands[targetcomm].num_of_args|| (commands[targetcomm].num_of_args==-1 && number_of_arguments>=2))
+			return targetcomm;
 		else
 			return CMD_INV_NUM_ARGS;
 	}
-
 	else if (numofmatched>0){
 		return CMD_MATCHED;
 	}
 	else
 		return CMD_INVALID;
 }
-
-
-
-

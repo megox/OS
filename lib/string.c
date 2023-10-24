@@ -91,6 +91,54 @@ strchr(const char *s, char c)
 			return (char *) s;
 	return 0;
 }
+char* strpbrk(char* str1, char* str2)
+{
+    int i = 0;
+    int j = 0;
+
+    int pos = 0;
+    int flg = 0;
+
+    while (*(str1 + i))
+        i++;
+
+    pos = i;
+    i = 0;
+    while (*(str2 + i)) {
+        j = 0;
+        while (*(str1 + j)) {
+            if (str2[i] == str1[j]) {
+                if (j <= pos) {
+                    pos = j;
+                    flg = 1;
+                }
+            }
+            j++;
+        }
+        i++;
+    }
+
+    if (flg == 1)
+        return &str1[pos];
+
+    return NULL;
+}
+int
+isMatched(char *s,char *c)
+{
+	int ic=0;
+	int s_len = strlen(s);
+	int c_len = strlen(c);
+	char* temp = s;
+	for(int i = 0;i<s_len;i++)
+	{
+		if(s[i] == c[ic])
+		{
+			ic++;
+		}
+	}
+	return (ic>=c_len);
+}
 
 // Return a pointer to the first occurrence of 'c' in 's',
 // or a pointer to the string-ending null character if the string has no 'c'.
@@ -311,21 +359,10 @@ int strsplit(char *string, char *SPLIT_CHARS, char **argv, int * argc)
 
 
 /*2024*/
-char * str2lower(char *dst, const char *src)
+char* str2lower(char *dst, const char *src)
 {
 	//TODO: [PROJECT'23.MS1 - #1] [1] PLAY WITH CODE! - str2lower
 	//Comment the following line before start coding...
-    char x;
-    int ind=0;
-    while(*src != '\0'){
-        if(*src>= 'A' && *src<='Z') {
-            x = (char) ((*src) + 32);
-        }else{
-            x = *src;
-        }
-        dst[ind]=x;
-        ind++;
-        src++;
-    }
-    return dst;
+	panic("process_command is not implemented yet");
+	return NULL;
 }
