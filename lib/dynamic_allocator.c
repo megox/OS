@@ -265,7 +265,6 @@ void free_block(void *va)
 	}
   }
 }
-	//panic("free_block is not implemented yet");
 
 
 
@@ -275,6 +274,79 @@ void free_block(void *va)
 void *realloc_block_FF(void* va, uint32 new_size)
 {
 	//TODO: [PROJECT'23.MS1 - #8] [3] DYNAMIC ALLOCATOR - realloc_block_FF()
-	panic("realloc_block_FF is not implemented yet");
+	//special cases
+
+	if((void*)va == NULL){
+		return (void *)alloc_block_FF(new_size);
+	}else if(new_size == 0){
+		free_block((void*)va);
+		return (void *)NULL;
+	}
+	new_size+= sizeOfMetaData();
+	// (regard that new size is not include meta_data && address is of the free space without meta_data) mego___o
+	struct BlockMetaData* blk = (void*)va - sizeOfMetaData();
+	struct BlockMetaData * tail = LIST_LAST(&block_list);
+
+	if((uint32)new_size > (uint32)blk->size){
+		uint32 required_size_to_expend = new_size - blk->size; //?
+		if(blk!=tail){
+			struct BlockMetaData* next_blk = LIST_NEXT((struct BlockMetaData*)blk); //////the next element ?
+			   if(next_blk->is_free==1){
+				//the _blk is not the tail and we have a free block in front of our block
+				//that need to be expended , so we check if this free block fit the
+				//(required_size_to_expend) or not.
+				if(next_blk->size == required_size_to_expend){
+					blk->size = new_size;
+					next_blk->size = 0;
+					next_blk->is_free=0;
+					LIST_REMOVE(&block_list , next_blk); //remove the next block we have use
+					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData()) ;  // still in same address
+				}
+				else if (next_blk->size > required_size_to_expend){
+					uint32 next_blk_new_size = next_blk->size - required_size_to_expend;
+					//remove the next block we have use and create new one with the free space
+					struct BlockMetaData* new_next_blk = (void *)next_blk + required_size_to_expend;
+					new_next_blk->size = next_blk_new_size;
+					new_next_blk->is_free = 1;
+					next_blk->size = 0;
+					next_blk->is_free=0;
+					LIST_REMOVE(&block_list , next_blk);
+					LIST_INSERT_AFTER(&block_list , blk ,new_next_blk);
+					blk->size += (uint32) required_size_to_expend;
+					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData()) ;  // still in same address
+				}
+				else{
+					void * ret = alloc_block_FF(new_size-sizeOfMetaData());
+					if(ret == (void*)-1){
+						return (void *)-1;//no suitable block
+					}else{
+						free_block((void*)va);
+						return (struct BlockMetaData*)ret; //the new allocated _blk
+					}
+				}
+			}
+		}
+		else if(blk==tail){
+			void * ret = sbrk(required_size_to_expend);
+			if(ret == (void*)-1){
+				return (void *)-1;//no size in heap
+			}else{
+				return (struct BlockMetaData*)((void*)tail + sizeOfMetaData()) ;
+			}
+		}
+	}
+	else if((uint32)new_size < (uint32)blk->size){
+		uint32 new_blk_size = blk->size - new_size;
+		blk->size = new_size;
+		struct BlockMetaData * new_block = (void*)blk + new_size;
+	    new_block->size = new_blk_size;
+		new_block->is_free = 1;
+		LIST_INSERT_AFTER(&block_list,blk,new_block);
+		return (struct BlockMetaData*)((void*)blk + sizeOfMetaData()) ;  // still in same address
+	}
+	else{
+		return (struct BlockMetaData*)((void*)blk + sizeOfMetaData()) ; // nothing to happen
+	}
+
 	return NULL;
 }
