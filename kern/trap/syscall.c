@@ -522,6 +522,38 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	/*2023*/
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code here
 
+
+
+
+	///////////////////////
+		case SYS_SBRK:
+			sys_sbrk(a1);
+			return 0;
+			break;
+	    case SYS_ALLOCATE_USER_MEM:{
+	    	if(a1 - KERNEL_BASE < 0 || a1 - KERNEL_BASE > (uint32)USER_LIMIT || (char *)a1 == '\0'){
+	    	    sched_kill_env(curenv->env_id);
+	    	}
+	    	else{
+	    		sys_allocate_user_mem((uint32)(a1),a2);
+	    	}
+	    	return 0;
+	    	 break;
+	    }
+		case SYS_FREE_USER_MEM:{
+	    	if(a1 - KERNEL_BASE < 0 || a1 - KERNEL_BASE > (uint32)USER_LIMIT || (char *)a1 == '\0'){
+			     sched_kill_env(curenv->env_id);
+			}
+			else{
+			    sys_free_user_mem((uint32)(a1),a2);
+			}
+			return 0;
+			break;
+		}
+	/////////////////////
+
+
+
 	//=====================================================================
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);

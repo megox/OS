@@ -340,7 +340,7 @@ void* sys_sbrk(int increment)
 
 //	cprintf("%d\n Iam here" , increment);
 	syscall(SYS_SBRK ,(uint32)increment,0 , 0, 0, 0);
-	return NULL;
+	return (void*)-1;
 }
 
 void sys_free_user_mem(uint32 virtual_address, uint32 size)

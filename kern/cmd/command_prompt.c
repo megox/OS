@@ -382,17 +382,22 @@ void Matched_command(char*nameofcomm,char* curcomm,bool* f,int * numofmatched,in
 	}
 		sizeofcomm++;
 		if(curcomm[j]=='\0'){
-			if(sizeofcomm==j&&nameofcomm[sizeofcomm]=='\0'){
-				(*f) = 1;
+			if(sizeofcomm==j&&(nameofcomm[sizeofcomm]=='\0'||nameofcomm[sizeofcomm]=='0')){
+				LIST_INIT(&foundCommands);
+
+						LIST_INSERT_TAIL( &foundCommands ,&commands[i]);
+						(*numofmatched)++;
+						(*f)=1;
+						return;
 			}
-		else{
 
 				LIST_INSERT_TAIL( &foundCommands ,&commands[i]);
-				(*numofmatched)++;
-			}
+								(*numofmatched)++;
+
 			break;
 		}
 	}
+
 }
 
 int process_command(int number_of_arguments, char** arguments)
@@ -400,26 +405,38 @@ int process_command(int number_of_arguments, char** arguments)
 
 	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
 	//Comment the following line before start coding...
+//CLOCK
 
+	str2lower(arguments[0],arguments[0]);
 	bool found= 0;int targetcomm,numofmatched=0;
 	LIST_INIT(&foundCommands);
 	for(int i=0;i<NUM_OF_COMMANDS;i++){
+char l_command[]="000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
-	Matched_command(commands[i].name,arguments[0],&found,&numofmatched,i);
+	Matched_command(str2lower(l_command,commands[i].name),arguments[0],&found,&numofmatched,i);
 	if(found==1){
+
 		targetcomm=i;
 			break;
 	}
 	}
+
 	if(found==1){
 		if(number_of_arguments-1 ==commands[targetcomm].num_of_args|| (commands[targetcomm].num_of_args==-1 && number_of_arguments>=2))
 			return targetcomm;
-		else
+		else{
+
+
 			return CMD_INV_NUM_ARGS;
+		}
 	}
+
 	else if (numofmatched>0){
+
 		return CMD_MATCHED;
 	}
-	else
+	else{
+
 		return CMD_INVALID;
+	}
 }

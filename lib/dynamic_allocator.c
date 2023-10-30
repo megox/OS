@@ -89,6 +89,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 {
 	//=========================================
 	//DON'T CHANGE THESE LINES=================
+
 	if (initSizeOfAllocatedSpace == 0)
 		return ;
 	//=========================================
@@ -98,12 +99,14 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 	struct BlockMetaData *head = (struct BlockMetaData *)daStart;
 	head->size = initSizeOfAllocatedSpace;
+LIST_INIT(&block_list);
 	head->is_free = (uint8)1;
 	LIST_INSERT_HEAD(&block_list , head);
 
+//	print_blocks_list((block_list));
+
 //	panic("initialize_dynamic_allocator is not implemented yet");
 }
-
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
@@ -122,15 +125,22 @@ void *alloc_block_FF(uint32 size)
 					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData());
 				}
 				else if(blk->is_free == 1 && blk->size > required_size){
-					//char* new_address=(char*)blk+ sizeOfMetaData();
-				//	char* nd=(char*)blk + required_size;
-					struct BlockMetaData * new_block = (void*)blk +required_size;
-				    new_block->size = blk->size - required_size;
-				    new_block->is_free = 1;
-					blk->size = required_size;
-					blk->is_free = 0;
-					LIST_INSERT_AFTER(&block_list,blk,new_block);
-					return(struct BlockMetaData*) ((void*)blk+sizeOfMetaData()  );
+
+					if(blk->size -required_size>=sizeOfMetaData()){
+							struct BlockMetaData * new_block = (void*)blk +required_size;
+									  new_block->size = blk->size - required_size;
+										    new_block->is_free = 1;
+										    blk->size = required_size;
+										    blk->is_free = 0;
+											LIST_INSERT_AFTER(&block_list,blk,new_block);
+
+
+							}
+							else{
+								blk->is_free = 0;
+
+							}
+							return(struct BlockMetaData*) ((void*)blk+sizeOfMetaData());
 				}
 			}
 
@@ -144,6 +154,8 @@ void *alloc_block_FF(uint32 size)
 					return NULL;
 				}
 				else{
+					struct BlockMetaData * new_block = ret;
+					LIST_INSERT_AFTER(&block_list,tail,new_block);
 					return(struct BlockMetaData*)( (void*)ret + sizeOfMetaData());
 				}
 			}
@@ -153,20 +165,101 @@ void *alloc_block_FF(uint32 size)
 					return NULL;
 				}
 			    else{
+			    	tail->size=required_size;
+			    	tail->is_free=0;
 					return (struct BlockMetaData*)((void*)tail + sizeOfMetaData());
 				}
 			}
 }
-//=========================================
-// [5] ALLOCATE BLOCK BY BEST FIT:
-//=========================================
+
+
 void *alloc_block_BF(uint32 size)
 {
+	//cprintf("the size that you want to allock : %d\n",size);
 	//TODO: [PROJECT'23.MS1 - BONUS] [3] DYNAMIC ALLOCATOR - alloc_block_BF()
-	panic("alloc_block_BF is not implemented yet");
-	return NULL;
-}
+	 if(size==0)
+				return NULL;
+	 uint32 min_size=0,count=0;
+	 uint8 available_blk=0;
+			uint32 required_size = size + sizeOfMetaData();
+			struct BlockMetaData* blk;
+			struct BlockMetaData* blk_with_best_size;
 
+	LIST_FOREACH(blk, &block_list)
+	{
+
+		if((blk)->is_free == 1){
+
+			 if (blk->size >= required_size){
+					available_blk=1;
+					if(min_size==0){
+					min_size=blk->size;
+					blk_with_best_size=blk;
+					}
+					else if (blk->size< min_size){
+					min_size=blk->size;
+			    	blk_with_best_size=blk;
+					}
+
+			}
+
+
+		}
+
+	}
+	if(available_blk==1){
+		if(blk_with_best_size->size -required_size>=sizeOfMetaData()){
+		struct BlockMetaData * new_block = (void*)blk_with_best_size +required_size;
+				  new_block->size = blk_with_best_size->size - required_size;
+					    new_block->is_free = 1;
+					    blk_with_best_size->size = required_size;
+					    blk_with_best_size->is_free = 0;
+						LIST_INSERT_AFTER(&block_list,blk_with_best_size,new_block);
+
+
+		}
+		else{
+			 blk_with_best_size->is_free = 0;
+
+		}
+		return(struct BlockMetaData*) ((void*)blk_with_best_size+sizeOfMetaData());
+	}
+
+
+	else{
+
+	  struct BlockMetaData * tail = LIST_LAST(&block_list);
+		void* ret;
+		uint32 new_block_address = 0;
+
+		if(tail->is_free == 0){
+				ret = sbrk(required_size);
+			if(ret== (void *)-1){
+
+						return NULL;
+			 }
+			else{
+				struct BlockMetaData * new_block = (struct BlockMetaData*)ret;
+						LIST_INSERT_AFTER(&block_list,tail,new_block);
+					return(struct BlockMetaData*)( (void*)ret + sizeOfMetaData());
+				}
+		}
+		else{
+			ret = sbrk(required_size - tail->size);
+				if(ret == (void *)-1){
+
+					return NULL;
+				}
+			   else{
+					tail->size=required_size;
+						tail->is_free=0;
+					return (struct BlockMetaData*)((void*)tail+ sizeOfMetaData());
+				}
+		}
+
+	}
+
+}
 //=========================================
 // [6] ALLOCATE BLOCK BY WORST FIT:
 //=========================================
@@ -265,7 +358,6 @@ void free_block(void *va)
 	}
   }
 }
-
 
 
 //=========================================
