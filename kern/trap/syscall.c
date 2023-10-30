@@ -521,10 +521,6 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	{
 	/*2023*/
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code here
-
-
-
-
 	///////////////////////
 		case SYS_SBRK:
 			sys_sbrk(a1);
@@ -551,9 +547,6 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 			break;
 		}
 	/////////////////////
-
-
-
 	//=====================================================================
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);

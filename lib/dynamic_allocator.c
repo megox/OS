@@ -359,7 +359,6 @@ void free_block(void *va)
   }
 }
 
-
 //=========================================
 // [4] REALLOCATE BLOCK BY FIRST FIT:
 //=========================================
@@ -370,19 +369,19 @@ void *realloc_block_FF(void* va, uint32 new_size)
 
 	if((void*)va == NULL){
 		return (void *)alloc_block_FF(new_size);
-	}else if(new_size == 0){
+	}
+	else if(new_size == 0){
 		free_block((void*)va);
 		return (void *)NULL;
 	}
-	new_size+= sizeOfMetaData();
+	new_size += sizeOfMetaData();
 	// (regard that new size is not include meta_data && address is of the free space without meta_data) mego___o
-	struct BlockMetaData* blk = (void*)va - sizeOfMetaData();
+	struct BlockMetaData * blk = (struct BlockMetaData*)((void*)va - sizeOfMetaData());
 	struct BlockMetaData * tail = LIST_LAST(&block_list);
-
 	if((uint32)new_size > (uint32)blk->size){
-		uint32 required_size_to_expend = new_size - blk->size; //?
+		uint32 required_size_to_expend = new_size - blk->size;
 		if(blk!=tail){
-			struct BlockMetaData* next_blk = LIST_NEXT((struct BlockMetaData*)blk); //////the next element ?
+			struct BlockMetaData* next_blk = LIST_NEXT((struct BlockMetaData*)blk);
 			   if(next_blk->is_free==1){
 				//the _blk is not the tail and we have a free block in front of our block
 				//that need to be expended , so we check if this free block fit the
@@ -396,44 +395,92 @@ void *realloc_block_FF(void* va, uint32 new_size)
 				}
 				else if (next_blk->size > required_size_to_expend){
 					uint32 next_blk_new_size = next_blk->size - required_size_to_expend;
-					//remove the next block we have use and create new one with the free space
-					struct BlockMetaData* new_next_blk = (void *)next_blk + required_size_to_expend;
-					new_next_blk->size = next_blk_new_size;
-					new_next_blk->is_free = 1;
-					next_blk->size = 0;
-					next_blk->is_free=0;
-					LIST_REMOVE(&block_list , next_blk);
-					LIST_INSERT_AFTER(&block_list , blk ,new_next_blk);
-					blk->size += (uint32) required_size_to_expend;
-					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData()) ;  // still in same address
+
+					if(next_blk_new_size >= sizeOfMetaData()){
+						//remove the next block we have use and create new one with the free space.
+						struct BlockMetaData* new_next_blk = (void *)next_blk + required_size_to_expend;
+						new_next_blk->size = next_blk_new_size;
+						new_next_blk->is_free = 1;
+						next_blk->size = 0;
+						next_blk->is_free=0;
+						blk->size = new_size;
+						LIST_REMOVE(&block_list , next_blk);
+						LIST_INSERT_AFTER(&block_list , blk ,new_next_blk);
+
+					}
+					else{
+						blk->size += ((uint32) next_blk->size);
+						next_blk->is_free = 0;
+						next_blk->size = 0;
+						LIST_REMOVE(&block_list , next_blk);
+					}
+					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData());  // still in same address
 				}
 				else{
 					void * ret = alloc_block_FF(new_size-sizeOfMetaData());
-					if(ret == (void*)-1){
+					if(ret == (void*)NULL){
 						return (void *)-1;//no suitable block
 					}else{
 						free_block((void*)va);
-						return (struct BlockMetaData*)ret; //the new allocated _blk
+						return (struct BlockMetaData*) ret; //the new allocated _blk
 					}
+				}
+			}
+			else{
+				void * ret = alloc_block_FF(new_size-sizeOfMetaData());
+				if(ret == (void*)NULL){
+				return (void *)-1;//no suitable block
+				}else{
+					free_block((void*)va);
+					return (struct BlockMetaData*) ret; //the new allocated _blk
 				}
 			}
 		}
 		else if(blk==tail){
-			void * ret = sbrk(required_size_to_expend);
-			if(ret == (void*)-1){
-				return (void *)-1;//no size in heap
-			}else{
-				return (struct BlockMetaData*)((void*)tail + sizeOfMetaData()) ;
+			void * ret = alloc_block_FF(new_size-sizeOfMetaData());
+			if(ret == (void*)NULL){
+			  return (void *)-1;//no suitable block
+			}
+			else{
+			  free_block((void*)va);
+			  return (struct BlockMetaData*) ret; //the new allocated _blk
 			}
 		}
 	}
 	else if((uint32)new_size < (uint32)blk->size){
 		uint32 new_blk_size = blk->size - new_size;
-		blk->size = new_size;
-		struct BlockMetaData * new_block = (void*)blk + new_size;
-	    new_block->size = new_blk_size;
-		new_block->is_free = 1;
-		LIST_INSERT_AFTER(&block_list,blk,new_block);
+		if(blk==tail){
+			if(new_blk_size >= sizeOfMetaData()){
+			 struct BlockMetaData* new_next_blk = (void *)blk + new_size;
+			 new_next_blk->size = new_blk_size;
+			 new_next_blk->is_free = 1;
+			 blk->size = new_size;
+			 LIST_INSERT_AFTER(&block_list , blk ,new_next_blk);
+			}
+		}
+		else{
+			struct BlockMetaData* next_blk = LIST_NEXT((struct BlockMetaData*)blk);
+			uint32 new_blk_size = blk->size - new_size;
+			if(next_blk->is_free==1){
+				blk->size = new_size;
+				struct BlockMetaData * new_block = (void*)blk + new_size;
+			    new_block->size = new_blk_size + next_blk->size;
+				new_block->is_free = 1;
+				next_blk->is_free=0;
+				next_blk->size=0;
+				LIST_REMOVE(&block_list , next_blk);
+				LIST_INSERT_AFTER(&block_list,blk,new_block);
+			}
+			else{
+				if(new_blk_size >= sizeOfMetaData()){
+				struct BlockMetaData* new_next_blk = (void *)blk + new_size;
+				new_next_blk->size = new_blk_size;
+				new_next_blk->is_free = 1;
+				blk->size = new_size;
+				LIST_INSERT_AFTER(&block_list , blk ,new_next_blk);
+			    }
+			}
+		}
 		return (struct BlockMetaData*)((void*)blk + sizeOfMetaData()) ;  // still in same address
 	}
 	else{
