@@ -4,8 +4,12 @@
 #ifndef FOS_KERNEL
 # error "This is a FOS kernel header; user programs should not #include it"
 #endif
+#include <inc/queue.h>
+#include <inc/types.h>
+#include <inc/environment_definitions.h>
 
 #include <inc/types.h>
+
 
 
 /*2017*/
@@ -43,7 +47,9 @@ int numOfKheapVACalls ;
 
 /*2023*/
 //TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialization: add suitable code here
-
+  uint32    da_Start;
+  uint32	HARD_LIMIT;
+  uint32	brk;
 //====================================================================================
 
 #endif // FOS_KERN_KHEAP_H_

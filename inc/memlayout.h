@@ -15,7 +15,7 @@
  */
 
 /*2016*/
-#define USE_KHEAP 0
+#define USE_KHEAP 1
 
 // Global descriptor numbers
 #define GD_KT     0x08     // kernel text
@@ -214,6 +214,9 @@ struct FrameInfo {
 	struct Env *environment;
 	unsigned char isBuffered;
 	struct WorkingSetElement *element;
+
+	uint32 size;//mego_o
+	uint32 virt;//mego_o
 };
 
 #endif /* !__ASSEMBLER__ */

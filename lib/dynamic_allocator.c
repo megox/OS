@@ -8,7 +8,7 @@
 #include <inc/string.h>
 #include "../inc/dynamic_allocator.h"
 
-
+uint32 page_size = 4 * 1024;
 //==================================================================================//
 //============================== GIVEN FUNCTIONS ===================================//
 //==================================================================================//
@@ -99,20 +99,15 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 	struct BlockMetaData *head = (struct BlockMetaData *)daStart;
 	head->size = initSizeOfAllocatedSpace;
-LIST_INIT(&block_list);
+    LIST_INIT(&block_list);
 	head->is_free = (uint8)1;
 	LIST_INSERT_HEAD(&block_list , head);
-
-//	print_blocks_list((block_list));
-
-//	panic("initialize_dynamic_allocator is not implemented yet");
 }
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
 void *alloc_block_FF(uint32 size)
 {
-
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
 		    if(size==0)
 				return NULL;
@@ -126,21 +121,18 @@ void *alloc_block_FF(uint32 size)
 				}
 				else if(blk->is_free == 1 && blk->size > required_size){
 
-					if(blk->size -required_size>=sizeOfMetaData()){
+					if(blk->size - required_size >= sizeOfMetaData()){
 							struct BlockMetaData * new_block = (void*)blk +required_size;
-									  new_block->size = blk->size - required_size;
-										    new_block->is_free = 1;
-										    blk->size = required_size;
-										    blk->is_free = 0;
-											LIST_INSERT_AFTER(&block_list,blk,new_block);
-
-
-							}
-							else{
-								blk->is_free = 0;
-
-							}
-							return(struct BlockMetaData*) ((void*)blk+sizeOfMetaData());
+							new_block->size = blk->size - required_size;
+							new_block->is_free = 1;
+							blk->size = required_size;
+							blk->is_free = 0;
+							LIST_INSERT_AFTER(&block_list,blk,new_block);
+					}
+					else{
+						blk->is_free = 0;
+					}
+					return(struct BlockMetaData*) ((void*)blk+sizeOfMetaData());
 				}
 			}
 
@@ -149,26 +141,53 @@ void *alloc_block_FF(uint32 size)
 			void* ret;
 			uint32 new_block_address = 0;
 		    if(tail->is_free == 0){
-				ret = sbrk(required_size);
-				if(ret== (void *)-1){
-					return NULL;
-				}
-				else{
-					struct BlockMetaData * new_block = ret;
-					LIST_INSERT_AFTER(&block_list,tail,new_block);
+					ret = sbrk(required_size);
+					uint32 diffrence_in_space = ROUNDUP(required_size,page_size) - required_size;
+					if(diffrence_in_space > sizeOfMetaData()){
+						struct BlockMetaData * new_block = ret;
+						new_block->is_free = 0;
+						new_block->size = required_size;
+					    LIST_INSERT_AFTER(&block_list,tail,new_block);
+
+					    // new block with the difference in space that the sbrk function maid
+					    //if i want to allocate 5KB sbrk will allocate 8KB so i need to make a
+					    //new block with size 3KB
+					    struct BlockMetaData * sbrkdifferance_block = (void *)ret + required_size;
+					    new_block->is_free = 1;
+					    new_block->size = diffrence_in_space;
+					    LIST_INSERT_AFTER(&block_list,new_block,sbrkdifferance_block);
+					}
+					else{
+						struct BlockMetaData * new_block = ret;
+						new_block->is_free = 0;
+						new_block->size = ROUNDUP(required_size,page_size);
+						LIST_INSERT_AFTER(&block_list,tail,new_block);
+					}
 					return(struct BlockMetaData*)( (void*)ret + sizeOfMetaData());
-				}
+
 			}
 			else{
-				ret = sbrk(required_size - tail->size);
-				if(ret == (void *)-1){
-					return NULL;
-				}
-			    else{
-			    	tail->size=required_size;
-			    	tail->is_free=0;
-					return (struct BlockMetaData*)((void*)tail + sizeOfMetaData());
-				}
+					required_size -= tail->size;
+					ret = sbrk(required_size);
+					uint32 diffrence_in_space = ROUNDUP(required_size,page_size) - required_size;
+
+					if(diffrence_in_space > sizeOfMetaData()){
+						tail->is_free = 0;
+						tail->size = required_size + tail->size;
+
+						// new block with the difference in space that the sbrk function maid
+						//if i want to allocate 5KB sbrk will allocate 8KB so i need to make a
+						//new block with size 3KB
+						struct BlockMetaData * sbrkdifferance_block = (void *)tail + tail->size;
+						sbrkdifferance_block->is_free = 1;
+						sbrkdifferance_block->size = diffrence_in_space;
+						LIST_INSERT_AFTER(&block_list,tail,sbrkdifferance_block);
+				    }
+					else{
+						tail->is_free = 0;
+						tail->size = ROUNDUP(required_size,page_size) + tail->size;
+					}
+					return(struct BlockMetaData*)( (void*)tail + sizeOfMetaData());
 			}
 }
 
