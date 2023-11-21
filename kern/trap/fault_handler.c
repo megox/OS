@@ -88,7 +88,32 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
 		//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
 		// Write your code here, remove the panic and write your code
-		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
+	struct FrameInfo *new_frame ;
+	int ret = allocate_frame(&new_frame);
+
+	//allocated successfully
+	if(ret==0){
+		int ret2=map_frame(ptr_page_directory,new_frame,fault_va,PERM_USER|PERM_WRITEABLE);
+		//mapped successfully
+		if(ret2==0){
+
+			int ret3 = pf_read_env_page(curenv, (void*)fault_va);
+			//the page not exist in page file
+			if (ret3 == E_PAGE_NOT_EXIST_IN_PF){
+				// if the page not belong to heap or stack ok
+				if(fault_va<KERNEL_HEAP_START && fault_va>KERNEL_HEAP_MAX && fault_va>KERNEL_STACK_TOP){
+					sched_kill_env(curenv->env_id);
+				}
+
+			}
+
+
+			struct WorkingSetElement*new_elm= env_page_ws_list_create_element(curenv,fault_va);
+  // LIST_LAST(curenv->page_WS_list)=new_elm;
+   curenv->page_last_WS_element=new_elm;
+
+		}
+	}
 
 		//refer to the project presentation and documentation for details
 	}
