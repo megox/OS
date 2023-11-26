@@ -23,6 +23,13 @@
 #define USED(x)		(void)(x)
 #define RAND(s,e)	((sys_get_virtual_time().low % (e-s) + s))
 
+struct my_struct {
+	uint32 va,size;
+	LIST_ENTRY(my_struct) prev_next_info;
+};
+LIST_HEAD(PAGE_BLOCKS , my_struct);
+struct PAGE_BLOCKS page_block_list;
+
 // libos.c or entry.S
 extern volatile char *binaryname;
 extern volatile struct Env *myEnv;
@@ -69,6 +76,10 @@ void* 	sys_sbrk(int increment);
 //******************
 
 //User Heap
+uint32 sys_get_hard_limit(); //mego_o
+int sys_get_page_table(uint32* ptr_page_dir ,const uint32 va ,uint32**ptr_page_table); //mego_o
+
+
 void 	sys_free_user_mem(uint32 virtual_address, uint32 size);
 void	sys_allocate_user_mem(uint32 virtual_address, uint32 size);
 void	sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms);

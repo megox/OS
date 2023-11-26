@@ -9,12 +9,11 @@
 int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit)
 {
 	//TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialize_kheap_dynamic_allocator()
-
 	da_Start = daStart;
 	HARD_LIMIT = daLimit;
-	brk = daStart + initSizeToAllocate;
+	brk = daStart + ROUNDUP( initSizeToAllocate , PAGE_SIZE);
 	uint32 pages_to_alloc = ROUNDUP( initSizeToAllocate , PAGE_SIZE) / PAGE_SIZE;
-	if(brk > daLimit || LIST_SIZE(&free_frame_list) < pages_to_alloc) return E_NO_MEM;
+	if(brk > daLimit || LIST_SIZE(&free_frame_list) < pages_to_alloc || daLimit > KERNEL_HEAP_MAX) return E_NO_MEM;
 	uint32 va = KERNEL_HEAP_START;
 
 	//allocate and map the mapped region
@@ -24,21 +23,21 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	    map_frame(ptr_page_directory , ptr ,va, PERM_WRITEABLE );
 		va = va + PAGE_SIZE;
 	}
-	initialize_dynamic_allocator(daStart , initSizeToAllocate);
+	initialize_dynamic_allocator(daStart , ROUNDUP( initSizeToAllocate , PAGE_SIZE));
 	return 0;
 }
+
 
 void* sbrk(int increment)
 {
 	//TODO: [PROJECT'23.MS2 - #02] [1] KERNEL HEAP - sbrk()
 	// increment > 0
 	if(increment > 0){
-	  uint32 new_brk = brk + increment;
+	  uint32 new_brk = ROUNDUP(brk + increment , PAGE_SIZE);
       if(new_brk <= HARD_LIMIT){
+    	  uint32 ret = brk;
     	  uint32 pages_to_alloc = ROUNDUP( increment , PAGE_SIZE) / PAGE_SIZE;
-    	  if(LIST_SIZE(&free_frame_list) < pages_to_alloc) {
-    		  panic("NO MEM !");
-    	  }
+    	  if(LIST_SIZE(&free_frame_list) < pages_to_alloc) panic("NO MEM !");
     	  uint32 va = brk;
     	  for(int i = 0 ; i < pages_to_alloc ; i++){
     	  	    struct FrameInfo * ptr = NULL;
@@ -47,7 +46,7 @@ void* sbrk(int increment)
     	  		va = va + PAGE_SIZE;
     	  }
     	  brk = new_brk;
-    	  return (void *)brk - increment;
+    	  return (void *)ret;
       }
       else{
     	  panic("NO MEM !");
@@ -55,7 +54,7 @@ void* sbrk(int increment)
 	}
 	else if(increment < 0){
 		if(brk + increment < KERNEL_HEAP_START)  panic("can not decrees the brk with this amount !");
-		uint32 pages_to_dealloc = ROUNDUP( -1 * increment , PAGE_SIZE) / PAGE_SIZE;
+		uint32 pages_to_dealloc = ( -1 * increment) / PAGE_SIZE;
   	    uint32 va = brk - PAGE_SIZE;
 		for(int i = 0 ; i < pages_to_dealloc ; i++){
 		   unmap_frame(ptr_page_directory , va);
@@ -67,9 +66,9 @@ void* sbrk(int increment)
 	else{
 		return (void *)brk;
 	}
-return NULL;
-}
 
+ return NULL;
+}
 
 void* kmalloc(unsigned int size)
 {
@@ -117,13 +116,8 @@ void* kmalloc(unsigned int size)
 			 }
 		 }
 	}
-
-	//change this "return" according to your answer
-    //	kpanic_into_prompt("kmalloc() is not implemented yet...!!");
-
 	return NULL;
 }
-
 
 void kfree(void* virtual_address)
 {
@@ -137,7 +131,6 @@ void kfree(void* virtual_address)
 
     	if(virtual_address >= (void *)KERNEL_HEAP_START&&
     	   virtual_address <=(void *) brk){
-
     		free_block(virtual_address);
 
 		}
@@ -239,6 +232,21 @@ void *krealloc(void *virtual_address, uint32 new_size)
 {
 	//TODO: [PROJECT'23.MS2 - BONUS#1] [1] KERNEL HEAP - krealloc()
 	// Write your code here, remove the panic and write your code
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	return NULL;
 	panic("krealloc() is not implemented yet...!!");
 }

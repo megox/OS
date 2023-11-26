@@ -17,11 +17,17 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 {
 	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
 	// Write your code here, remove the panic and write your code
-	struct WorkingSetElement* new_ws=(struct WorkingSetElement*)virtual_address;
-	if(new_ws==NULL)
-		panic("Failed to create element");
-	else
-		 return new_ws;
+	if(e->page_last_WS_element==NULL){
+	struct WorkingSetElement* ret = kmalloc(sizeof(struct WorkingSetElement));
+	struct WorkingSetElement* new_ws = ret;
+	new_ws-> virtual_address = virtual_address; // t2repn m4 m7tagin da hwa bi7gz bs w himlaha b3din b addres tani
+	return new_ws;
+	}
+	else{
+		panic("failed to create a new working set element ");
+	}
+//	if(new_ws==NULL) hi3ml panic fe kmalloc lw mfi4 makn
+//		panic("Failed to create element");
 
 }
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)

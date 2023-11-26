@@ -8,7 +8,7 @@
 #include <inc/string.h>
 #include "../inc/dynamic_allocator.h"
 
-uint32 page_size = 4 * 1024;
+//uint32 page_size = 4 * 1024;
 //==================================================================================//
 //============================== GIVEN FUNCTIONS ===================================//
 //==================================================================================//
@@ -85,6 +85,8 @@ void print_blocks_list(struct MemBlock_LIST list)
 //==================================
 // [1] INITIALIZE DYNAMIC ALLOCATOR:
 //==================================
+
+bool is_initialized = 0;
 void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpace)
 {
 	//=========================================
@@ -92,6 +94,8 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 	if (initSizeOfAllocatedSpace == 0)
 		return ;
+
+	is_initialized = 1;
 	//=========================================
 	//=========================================
 
@@ -109,8 +113,18 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 void *alloc_block_FF(uint32 size)
 {
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
+
 		    if(size==0)
 				return NULL;
+		    if (!is_initialized)
+		    {
+				uint32 required_size = size + sizeOfMetaData();
+				uint32 da_start = (uint32)sbrk(required_size);
+				//get new break since it's page aligned! thus, the size can be more than the required one
+				uint32 da_break = (uint32)sbrk(0);
+				initialize_dynamic_allocator(da_start, da_break - da_start);
+		    }
+
 			uint32 required_size = size + sizeOfMetaData();
 			struct BlockMetaData* blk;
 			LIST_FOREACH(blk, &block_list)
@@ -142,7 +156,7 @@ void *alloc_block_FF(uint32 size)
 			uint32 new_block_address = 0;
 		    if(tail->is_free == 0){
 					ret = sbrk(required_size);
-					uint32 diffrence_in_space = ROUNDUP(required_size,page_size) - required_size;
+					uint32 diffrence_in_space = ROUNDUP(required_size,PAGE_SIZE) - required_size;
 					if(diffrence_in_space > sizeOfMetaData()){
 						struct BlockMetaData * new_block = ret;
 						new_block->is_free = 0;
@@ -160,7 +174,7 @@ void *alloc_block_FF(uint32 size)
 					else{
 						struct BlockMetaData * new_block = ret;
 						new_block->is_free = 0;
-						new_block->size = ROUNDUP(required_size,page_size);
+						new_block->size = ROUNDUP(required_size,PAGE_SIZE);
 						LIST_INSERT_AFTER(&block_list,tail,new_block);
 					}
 					return(struct BlockMetaData*)( (void*)ret + sizeOfMetaData());
@@ -169,7 +183,7 @@ void *alloc_block_FF(uint32 size)
 			else{
 					required_size -= tail->size;
 					ret = sbrk(required_size);
-					uint32 diffrence_in_space = ROUNDUP(required_size,page_size) - required_size;
+					uint32 diffrence_in_space = ROUNDUP(required_size,PAGE_SIZE) - required_size;
 
 					if(diffrence_in_space > sizeOfMetaData()){
 						tail->is_free = 0;
@@ -185,7 +199,7 @@ void *alloc_block_FF(uint32 size)
 				    }
 					else{
 						tail->is_free = 0;
-						tail->size = ROUNDUP(required_size,page_size) + tail->size;
+						tail->size = ROUNDUP(required_size,PAGE_SIZE) + tail->size;
 					}
 					return(struct BlockMetaData*)( (void*)tail + sizeOfMetaData());
 			}
@@ -219,10 +233,7 @@ void *alloc_block_BF(uint32 size)
 					min_size=blk->size;
 			    	blk_with_best_size=blk;
 					}
-
 			}
-
-
 		}
 
 	}
@@ -304,8 +315,7 @@ void free_block(void *va)
 {
 	if(va !=NULL){
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
-		struct BlockMetaData* blk=(void*)va-sizeOfMetaData();
-	//	cprintf("%x",blk);
+		struct BlockMetaData* blk =(void*)va-sizeOfMetaData();
 		struct BlockMetaData* prevblk=	LIST_PREV(blk);
 		struct BlockMetaData* nextblk=	LIST_NEXT(blk);
 		if(blk==LIST_FIRST(&block_list)){

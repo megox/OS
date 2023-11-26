@@ -57,6 +57,9 @@
 #define PDXSHIFT	22		// offset of PDX in a linear address
 
 // Page table/directory entry flags.
+
+#define PERM_MARKED  0x400 // MARKED  (mego_o)
+
 #define PERM_PRESENT	0x001	// Present
 #define PERM_WRITEABLE	0x002	// Writeable
 #define PERM_USER		0x004	// User

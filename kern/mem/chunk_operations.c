@@ -117,15 +117,20 @@ uint32 calculate_required_frames(uint32* page_directory, uint32 sva, uint32 size
 //=====================================
 void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
-	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
-	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
-	/*=============================================================================*/
+    uint32 pages_to_mark = size / PAGE_SIZE;
+    for(int i = 0 ; i < pages_to_mark ;i++){
+    	uint32* ptr_page_table = NULL;
+    	int ret = get_page_table(e->env_page_directory,virtual_address,&ptr_page_table);
+    	if(ret==1){
+        	ptr_page_table = create_page_table(e->env_page_directory,virtual_address);
+        }
+    	ptr_page_table[PTX(virtual_address)] = ptr_page_table[PTX(virtual_address)] | PERM_MARKED;
+    	virtual_address += PAGE_SIZE;
 
-	// Write your code here, remove the panic and write your code
-	panic("allocate_user_mem() is not implemented yet...!!");
+//    	cprintf("malloc \n");
+    }
+	return;
 }
 
 //=====================================
@@ -135,14 +140,17 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	/*==========================================================================*/
 	//TODO: [PROJECT'23.MS2 - #12] [2] USER HEAP - free_user_mem() [Kernel Side]
-	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
-	/*==========================================================================*/
-
-	// Write your code here, remove the panic and write your code
-	panic("free_user_mem() is not implemented yet...!!");
-
+	uint32 va = virtual_address;
+	uint32 pages_to_unmark = size/PAGE_SIZE;
+	for(int i=0;i<pages_to_unmark;i++){
+		uint32* ptr_page_table = NULL;
+		int ret = get_page_table(e->env_page_directory,va,&ptr_page_table);
+		uint32 page_entry = ptr_page_table[PTX(va)];
+		page_entry = page_entry & (~PERM_MARKED);
+		pf_remove_env_page(e, va);
+		env_page_ws_invalidate(e, va);
+		va += PAGE_SIZE;
+	}
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
 
 }

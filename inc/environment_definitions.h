@@ -92,9 +92,11 @@ struct Env {
 	//================
 	/*ADDRESS SPACE*/
 	//================
+
 	uint32 *env_page_directory;		// Kernel virtual address of page dir
 	uint32 env_cr3;					// Physical address of page dir
 	uint32 initNumStackPages ;		// Initial number of allocated stack pages
+
 
 	//for page file management
 	uint32* disk_env_pgdir;
@@ -108,6 +110,10 @@ struct Env {
 
 	/*2023*/
 	//TODO: [PROJECT'23.MS2 - #07] [2] USER HEAP - initialize of Env: add suitable code here
+
+	uint32  user_start;
+	uint32	user_limit;
+	uint32	user_brk;
 
 	//==================================================================================
 

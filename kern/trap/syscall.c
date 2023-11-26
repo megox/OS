@@ -478,11 +478,17 @@ void sys_bypassPageFault(uint8 instrLength)
 /* DYNAMIC ALLOCATOR SYSTEM CALLS */
 /**********************************/
 /*2024*/
+
+uint32 sys_get_hard_limit(){
+	return curenv->user_limit;
+}
+
+
 void* sys_sbrk(int increment)
 {
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
-	return (void*)-1 ;
+    //return (void*)-1 ;
 	//====================================================
 
 	/*2023*/
@@ -504,9 +510,32 @@ void* sys_sbrk(int increment)
 	 * 		be that sys_sbrk returns (void*) -1 and that the segment break and the process heap are unaffected.
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
-	struct Env* env = curenv; //the current running Environment to adjust its break limit
 
-
+	uint32 off = curenv->user_limit + PAGE_SIZE;
+	if(increment > 0){
+		  uint32 new_brk = ROUNDUP(curenv->user_brk + increment , PAGE_SIZE);
+	      if(new_brk <= curenv->user_limit){
+	    	  if(LIST_SIZE(&free_frame_list) < 1) return (void*)-1 ;
+	    	  curenv->user_brk = new_brk;
+	    	  return (void *)curenv->user_brk - ROUNDUP(increment,PAGE_SIZE);
+	      }
+	      else{
+	    	  return (void*)-1 ;
+	      }
+		}
+		else if(increment < 0){
+			if(curenv->user_brk + increment < USER_HEAP_START)  return (void *)-1;
+	  	    if(curenv->user_brk - ROUNDDOWN(curenv->user_brk,PAGE_SIZE) <= -increment){
+	  	    	uint32 va = curenv->user_brk - PAGE_SIZE;
+	  	    	curenv->user_brk = va;
+	  	    	unmap_frame(curenv->env_page_directory , va);
+	  	    }
+			return (void *)curenv->user_brk;
+		}
+		else{
+			return (void *)curenv->user_brk;
+		}
+	return(void*)-1;
 }
 
 /**************************************************************************/
@@ -522,10 +551,14 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	/*2023*/
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code here
 	///////////////////////
-		case SYS_SBRK:
-			sys_sbrk(a1);
-			return 0;
+    	case SYS_get_hard_limit:
+		    return sys_get_hard_limit();
 			break;
+
+		case SYS_SBRK: //// EDIT HERE ????
+			return (uint32)sys_sbrk(a1);
+			break;
+
 	    case SYS_ALLOCATE_USER_MEM:{
 	    	if(a1 - KERNEL_BASE < 0 || a1 - KERNEL_BASE > (uint32)USER_LIMIT || (char *)a1 == '\0'){
 	    	    sched_kill_env(curenv->env_id);
