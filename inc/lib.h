@@ -77,6 +77,9 @@ void* 	sys_sbrk(int increment);
 
 //User Heap
 uint32 sys_get_hard_limit(); //mego_o
+uint32 sys_get_user_brk(); //mego_o
+
+
 int sys_get_page_table(uint32* ptr_page_dir ,const uint32 va ,uint32**ptr_page_table); //mego_o
 
 

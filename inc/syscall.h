@@ -57,7 +57,7 @@ enum
 	SYS_ALLOCATE_USER_MEM,
 	SYS_FREE_USER_MEM,
 	SYS_get_hard_limit,
-	SYS_get_page_table,
+	SYS_get_user_brk,
 	//=====================================================================
 	NSYSCALLS
 };

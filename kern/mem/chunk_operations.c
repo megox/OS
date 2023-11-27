@@ -125,13 +125,12 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
     	if(ret==1){
         	ptr_page_table = create_page_table(e->env_page_directory,virtual_address);
         }
-    	ptr_page_table[PTX(virtual_address)] = ptr_page_table[PTX(virtual_address)] | PERM_MARKED;
+    	ptr_page_table[PTX(virtual_address)] = ptr_page_table[PTX(virtual_address)] | PERM_AVAILABLE;
     	virtual_address += PAGE_SIZE;
-
-//    	cprintf("malloc \n");
     }
 	return;
 }
+
 
 //=====================================
 // 2) FREE USER MEMORY:
@@ -145,10 +144,10 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	for(int i=0;i<pages_to_unmark;i++){
 		uint32* ptr_page_table = NULL;
 		int ret = get_page_table(e->env_page_directory,va,&ptr_page_table);
-		uint32 page_entry = ptr_page_table[PTX(va)];
-		page_entry = page_entry & (~PERM_MARKED);
+		ptr_page_table[PTX(va)] = ptr_page_table[PTX(va)] & (~PERM_AVAILABLE) ;
 		pf_remove_env_page(e, va);
 		env_page_ws_invalidate(e, va);
+		unmap_frame(e->env_page_directory , va);
 		va += PAGE_SIZE;
 	}
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list

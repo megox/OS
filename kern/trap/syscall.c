@@ -483,41 +483,28 @@ uint32 sys_get_hard_limit(){
 	return curenv->user_limit;
 }
 
+uint32 sys_get_user_brk(){
+	return curenv->user_brk;
+}
+
 
 void* sys_sbrk(int increment)
 {
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
-    //return (void*)-1 ;
-	//====================================================
 
-	/*2023*/
-	/* increment > 0: move the segment break of the current user program to increase the size of its heap,
-	 * 				you should allocate NOTHING,
-	 * 				and returns the address of the previous break (i.e. the beginning of newly mapped memory).
-	 * increment = 0: just return the current position of the segment break
-	 * increment < 0: move the segment break of the current user program to decrease the size of its heap,
-	 * 				you should deallocate pages that no longer contain part of the heap as necessary.
-	 * 				and returns the address of the new break (i.e. the end of the current heap space).
-	 *
-	 * NOTES:
-	 * 	1) You should only have to allocate or deallocate pages if the segment break crosses a page boundary
-	 * 	2) New segment break should be aligned on page-boundary to avoid "No Man's Land" problem
-	 * 	3) As in real OS, allocate pages lazily. While sbrk moves the segment break, pages are not allocated
-	 * 		until the user program actually tries to access data in its heap (i.e. will be allocated via the fault handler).
-	 * 	4) Allocating additional pages for a process’ heap will fail if, for example, the free frames are exhausted
-	 * 		or the break exceed the limit of the dynamic allocator. If sys_sbrk fails, the net effect should
-	 * 		be that sys_sbrk returns (void*) -1 and that the segment break and the process heap are unaffected.
-	 * 		You might have to undo any operations you have done so far in this case.
-	 */
-
-	uint32 off = curenv->user_limit + PAGE_SIZE;
 	if(increment > 0){
-		  uint32 new_brk = ROUNDUP(curenv->user_brk + increment , PAGE_SIZE);
+		  uint32 new_brk = curenv->user_brk + ROUNDUP(increment , PAGE_SIZE);
 	      if(new_brk <= curenv->user_limit){
-	    	  if(LIST_SIZE(&free_frame_list) < 1) return (void*)-1 ;
+	    	  uint32 re =  curenv->user_brk;
+	    	  uint32* ptr_page_table = NULL;
+	    	  int ret = get_page_table(curenv->env_page_directory,curenv->user_brk,&ptr_page_table);
+	    	  if(ret==1){
+	           	ptr_page_table = create_page_table(curenv->env_page_directory,curenv->user_brk);
+	    	  }
+	    	  ptr_page_table[PTX(curenv->user_brk)] = ptr_page_table[PTX(curenv->user_brk)] | PERM_AVAILABLE;
 	    	  curenv->user_brk = new_brk;
-	    	  return (void *)curenv->user_brk - ROUNDUP(increment,PAGE_SIZE);
+	    	  return (void *) re;
 	      }
 	      else{
 	    	  return (void*)-1 ;
@@ -525,6 +512,7 @@ void* sys_sbrk(int increment)
 		}
 		else if(increment < 0){
 			if(curenv->user_brk + increment < USER_HEAP_START)  return (void *)-1;
+
 	  	    if(curenv->user_brk - ROUNDDOWN(curenv->user_brk,PAGE_SIZE) <= -increment){
 	  	    	uint32 va = curenv->user_brk - PAGE_SIZE;
 	  	    	curenv->user_brk = va;
@@ -555,7 +543,11 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		    return sys_get_hard_limit();
 			break;
 
-		case SYS_SBRK: //// EDIT HERE ????
+    	case SYS_get_user_brk :
+		    return sys_get_user_brk();
+			break;
+
+		case SYS_SBRK:
 			return (uint32)sys_sbrk(a1);
 			break;
 

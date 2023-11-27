@@ -785,7 +785,7 @@ void initialize_uheap_dynamic_allocator(struct Env* e, uint32 daStart, uint32 da
 	e->user_start = daStart;
     e->user_limit = daLimit;
     e->user_brk = daStart;
-    cprintf("%d user hard limit \n" , e->user_limit);
+//    cprintf("%d user hard limit \n" , e->user_limit);
 
 	initialize_dynamic_allocator(daStart,0);
 

@@ -335,13 +335,14 @@ void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms)
 /*2023*/
 //TODO: [PROJECT'23.MS1 - #3] [2] SYSTEM CALLS - Implement these system calls
 
-int sys_get_page_table(uint32* ptr_page_dir ,const uint32 va ,uint32**ptr_page_table){
-	return syscall(SYS_get_page_table ,(uint32)ptr_page_dir,(uint32)va, (uint32)&ptr_page_table, 0, 0);
-}
 
 
 uint32 sys_get_hard_limit(){ //mego_o
 	return syscall(SYS_get_hard_limit ,0,0 , 0, 0, 0);
+}
+
+uint32 sys_get_user_brk(){
+	return syscall(SYS_get_user_brk ,0,0 , 0, 0, 0);
 }
 
 

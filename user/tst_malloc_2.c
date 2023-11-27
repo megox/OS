@@ -60,7 +60,7 @@ void _main(void)
 				va = startVAs[idx] = malloc(actualSize);
 				midVAs[idx] = va + actualSize/2 ;
 				endVAs[idx] = va + actualSize - sizeof(short);
-				//Check returned va
+
 				if(va == NULL || (va < curVA))
 				{
 					if (is_correct)
@@ -85,10 +85,13 @@ void _main(void)
 				*(midVAs[idx]) = idx ;
 				*(endVAs[idx]) = idx ;
 				idx++;
+
 			}
 			//if (is_correct == 0)
 			//break;
 		}
+
+
 		if (is_correct)
 		{
 			eval += 30;

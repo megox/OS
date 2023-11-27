@@ -36,67 +36,52 @@ void* sbrk(int increment)
 //=================================
 
 
-char mark[400000]; //mego_o
-
-
+char mark[150000]; //mego_o
 void* malloc(uint32 size)
 {
-	cprintf("user heap size (%u) \n",USER_HEAP_MAX - (sys_get_hard_limit() + PAGE_SIZE));
-	cprintf("hard limit (%u) \n", sys_get_hard_limit());
-
   //DON'T CHANGE THIS CODE========================================
   InitializeUHeap();
   if (size == 0) return NULL ;
-
-//        struct my_struct* first_block =  NULL;
-//  	first_block->va = (uint32)sys_get_hard_limit() + PAGE_SIZE;
-//  	first_block->size =(uint32) (USER_HEAP_MAX - (sys_get_hard_limit() + PAGE_SIZE));
-//  	LIST_INSERT_HEAD(&page_block_list,first_block);
-
-    cprintf("input size is (%d) ",size);
 
   //==============================================================
   //TODO: [PROJECT'23.MS2 - #09] [2] USER HEAP - malloc() [User Side]
   // Write your code here, remove the panic and write your code
   uint32 HARD_LIMIT = sys_get_hard_limit();
   void * ret = NULL;
-  if(size <= DYN_ALLOC_MAX_BLOCK_SIZE){
-    return (void *)alloc_block_FF(size);
-  }
-  else{
-   if(sys_isUHeapPlacementStrategyFIRSTFIT()){
-   uint32 pages_to_alloc = ROUNDUP( size , PAGE_SIZE) / PAGE_SIZE;
-   uint32 counter = 0;
-   uint32 va = sys_get_hard_limit() + PAGE_SIZE;
-   uint32 off = sys_get_hard_limit() + PAGE_SIZE;
-   uint32  start_va_to_mark;
-    while(va != USER_HEAP_MAX){
-       int r = mark[(va-off) / PAGE_SIZE];
-       if(r!=1 && r!=5){
-         counter++;
-         if(counter == 1) start_va_to_mark = va;
-         if(counter == pages_to_alloc){
-           //mark here
-
-           uint32 virtual_address = start_va_to_mark;
-           for(int i=0 ; i<counter ;i++){
-            mark[(virtual_address-off) / PAGE_SIZE] = 1;
-            if(i == counter - 1) mark[(virtual_address-off) / PAGE_SIZE] = 5;//(5) is to mark the last page of block
-            virtual_address+=PAGE_SIZE;
-           }
-           ret = (void *)start_va_to_mark;
-           cprintf("start_va_to_mark (%u) \n",start_va_to_mark);
-           sys_allocate_user_mem(start_va_to_mark , PAGE_SIZE * pages_to_alloc);
-           return (void *)ret;
-         }
-        }
-        else{
-        counter = 0;
-        }
-        va = va + PAGE_SIZE;
-     }
-     return(void*) NULL;
-   }
+  if(sys_isUHeapPlacementStrategyFIRSTFIT()){
+	    if(size <= DYN_ALLOC_MAX_BLOCK_SIZE){
+	      return (void *) alloc_block_FF(size);
+	    }
+	    else{
+	     uint32 pages_to_alloc = ROUNDUP( size , PAGE_SIZE) / PAGE_SIZE;
+	     uint32 counter = 0;
+	     uint32 va = sys_get_hard_limit() + PAGE_SIZE;
+	     uint32 off = sys_get_hard_limit() + PAGE_SIZE;
+	     uint32  start_va_to_mark;
+	      while(va != USER_HEAP_MAX){
+	         int r = mark[(va-off) / PAGE_SIZE];
+	         if(r!=1 && r!=5){
+	           counter++;
+	           if(counter == 1) start_va_to_mark = va;
+	           if(counter == pages_to_alloc){
+	             uint32 virtual_address = start_va_to_mark;
+	             for(int i=0 ; i<counter ;i++){
+	              mark[(virtual_address-off) / PAGE_SIZE] = 1;
+	              if(i == counter - 1) mark[(virtual_address-off) / PAGE_SIZE] = 5;//(5) is to mark the last page of block
+	              virtual_address+=PAGE_SIZE;
+	             }
+	             ret = (void *)start_va_to_mark;
+	             sys_allocate_user_mem(start_va_to_mark , PAGE_SIZE * pages_to_alloc);
+	             return (void *)ret;
+	           }
+	          }
+	          else{
+	          counter = 0;
+	          }
+	          va = va + PAGE_SIZE;
+	       }
+	       return(void*) NULL;
+	    }
   }
   return (void*)NULL;
 }
@@ -107,27 +92,30 @@ void* malloc(uint32 size)
 void free(void* virtual_address){
 //TODO: [PROJECT'23.MS2 - #04] [1] KERNEL HEAP - kfree()
 
-      if(virtual_address >= (void *)USER_HEAP_START&&
-         virtual_address <=(void *) myEnv->user_brk){
+//	int x = 0;
+    uint32 off = sys_get_hard_limit() + PAGE_SIZE;
+    if(virtual_address >= (void *)USER_HEAP_START&&
+       virtual_address <=(void *) sys_get_hard_limit()){
         free_block(virtual_address);
-
     }
-    else if (virtual_address >=(void *) (myEnv->user_limit + PAGE_SIZE)&&
-         virtual_address <=(void *) USER_HEAP_MAX){
+    else if (virtual_address >=(void *) (sys_get_hard_limit() + PAGE_SIZE)&&
+             virtual_address <=(void *) USER_HEAP_MAX){
+
+//      panic("a7aaaaa");
 
       uint32 block_counter = 0;
-            uint32 va = (uint32)virtual_address;
-            if(mark[va/PAGE_SIZE]!=1 && mark[va/PAGE_SIZE]!=5) panic("userfree() invalid virtual address !!");
-      while(va!=USER_HEAP_MAX){
-        if(mark[va/PAGE_SIZE]==5){
-          block_counter++;
-          mark[va/PAGE_SIZE]=0;
-          break;
-        }
-        else{
-          block_counter++;
-          mark[va/PAGE_SIZE]=0;
-        }
+	  uint32 va = (uint32)virtual_address;
+	  if(mark[(va-off)/PAGE_SIZE]!=1 && mark[(va-off)/PAGE_SIZE]!=5) panic("userfree() invalid virtual address !!");
+	  while(va!=USER_HEAP_MAX){
+		  if(mark[(va-off)/PAGE_SIZE]==5){
+			  block_counter++;
+			  mark[(va-off)/PAGE_SIZE] = 0;
+			  break;
+		  }
+		  else{
+			  block_counter++;
+			  mark[(va-off)/PAGE_SIZE] = 0;
+		  }
         va+=PAGE_SIZE;
       }
       sys_free_user_mem((uint32)virtual_address,block_counter*PAGE_SIZE);
@@ -135,7 +123,6 @@ void free(void* virtual_address){
     else{
       panic("userfree() invalid virtual address !!");
     }
-
 }
 //=================================
 // [4] ALLOCATE SHARED VARIABLE:
@@ -191,7 +178,6 @@ void *realloc(void *virtual_address, uint32 new_size)
   //DON'T CHANGE THIS CODE========================================
   InitializeUHeap();
   //==============================================================
-
   // Write your code here, remove the panic and write your code
   panic("realloc() is not implemented yet...!!");
   return NULL;
