@@ -488,42 +488,69 @@ uint32 sys_get_user_brk(){
 }
 
 
+
+
 void* sys_sbrk(int increment)
 {
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
-	//MS2: COMMENT THIS LINE BEFORE START CODING====
-
-	if(increment > 0){
-		  uint32 new_brk = curenv->user_brk + ROUNDUP(increment , PAGE_SIZE);
-	      if(new_brk <= curenv->user_limit){
+	//MS2: COMMENT THIS LINE BEFORE START CODING
+	 if(increment > 0){
+		  uint32 new_brk =  ROUNDUP(curenv->user_brk + increment , PAGE_SIZE);
+	         if(new_brk <= curenv->user_limit){
 	    	  uint32 re =  curenv->user_brk;
-	    	  uint32* ptr_page_table = NULL;
-	    	  int ret = get_page_table(curenv->env_page_directory,curenv->user_brk,&ptr_page_table);
-	    	  if(ret==1){
-	           	ptr_page_table = create_page_table(curenv->env_page_directory,curenv->user_brk);
-	    	  }
-	    	  ptr_page_table[PTX(curenv->user_brk)] = ptr_page_table[PTX(curenv->user_brk)] | PERM_AVAILABLE;
+	    	  uint32 va = curenv->user_brk;
+	    	  uint32 pages_to_alloc = ROUNDUP( increment , PAGE_SIZE) / PAGE_SIZE;
+	          for(int i = 0 ; i < pages_to_alloc;i++){
+	        	  uint32* ptr_page_table = NULL;
+				  int ret = get_page_table(curenv->env_page_directory,va,&ptr_page_table);
+				  if(ret==1){
+					ptr_page_table = create_page_table(curenv->env_page_directory,va);
+				  }
+				  ptr_page_table[PTX(curenv->user_brk)] = ptr_page_table[PTX(va)] | PERM_AVAILABLE;
+				  va+=PAGE_SIZE;
+	          }
 	    	  curenv->user_brk = new_brk;
 	    	  return (void *) re;
 	      }
 	      else{
-	    	  return (void*)-1 ;
+	    	  return (void*) -1 ;
 	      }
 		}
 		else if(increment < 0){
 			if(curenv->user_brk + increment < USER_HEAP_START)  return (void *)-1;
+			 uint32 pages_to_dealloc = -increment / PAGE_SIZE;
+
+			 uint32 va = ROUNDUP(curenv->user_brk , PAGE_SIZE) - PAGE_SIZE;
+			 for(int i = 0;i<pages_to_dealloc;i++){
+				unmap_frame(curenv->env_page_directory , va);
+				uint32* ptr_page_table = NULL;
+				get_page_table(curenv->env_page_directory,va,&ptr_page_table);
+				ptr_page_table[PTX(va)] = ptr_page_table[PTX(va)] & (~PERM_AVAILABLE);
+				va-=PAGE_SIZE;
+			 }
+			curenv->user_brk -=  (pages_to_dealloc*PAGE_SIZE);
+			increment += (pages_to_dealloc*PAGE_SIZE);
 
 	  	    if(curenv->user_brk - ROUNDDOWN(curenv->user_brk,PAGE_SIZE) <= -increment){
-	  	    	uint32 va = curenv->user_brk - PAGE_SIZE;
-	  	    	curenv->user_brk = va;
-	  	    	unmap_frame(curenv->env_page_directory , va);
+	  	    	uint32 va = curenv->user_brk;
+	  	    	unmap_frame(curenv->env_page_directory , ROUNDDOWN(va,PAGE_SIZE));
+	  	    	uint32* ptr_page_table = NULL;
+	  	    	get_page_table(curenv->env_page_directory,ROUNDDOWN(va,PAGE_SIZE),&ptr_page_table);
+	  	    	ptr_page_table[PTX(ROUNDDOWN(va,PAGE_SIZE))] = ptr_page_table[PTX(ROUNDDOWN(va,PAGE_SIZE))] & (~PERM_AVAILABLE);
+	  	    	curenv->user_brk += increment;
 	  	    }
+	  	    else {
+	  	    	uint32 va = curenv->user_brk + increment;
+	  	    	curenv->user_brk = va;
+	  	    }
+
 			return (void *)curenv->user_brk;
 		}
 		else{
 			return (void *)curenv->user_brk;
 		}
 	return(void*)-1;
+
 }
 
 /**************************************************************************/

@@ -110,249 +110,78 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
+//struct BlockMetaData* last_block_address = NULL;
 
-
-//void *alloc_block_FF(uint32 size)
-//{
-//	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
-//		    if(size==0)
-//				return NULL;
-//
-//		    if (!is_initialized)
-//		    {
-//				uint32 required_size = size + sizeOfMetaData();
-//				uint32 da_start = (uint32)sbrk(required_size);
-//				//get new break since it's page aligned! thus, the size can be more than the required one
-//				uint32 da_break = (uint32)sbrk(0);
-//				initialize_dynamic_allocator(da_start, da_break - da_start);
-//		    }
-//
-//			uint32 required_size = size + sizeOfMetaData();
-//			struct BlockMetaData* blk;
-//			LIST_FOREACH(blk, &block_list)
-//			{
-//				if((blk)->is_free == 1 && blk->size == required_size){
-//					blk->is_free = 0;
-//					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData());
-//				}
-//				else if(blk->is_free == 1 && blk->size > required_size){
-//
-//					if(blk->size -required_size>=sizeOfMetaData()){
-//					struct BlockMetaData * new_block = (void*)blk +required_size;
-//					new_block->size = blk->size - required_size;
-//					new_block->is_free = 1;
-//					blk->size = required_size;
-//					blk->is_free = 0;
-//					LIST_INSERT_AFTER(&block_list,blk,new_block);
-//					}
-//					else{
-//						blk->is_free = 0;
-//
-//					}
-//						return(struct BlockMetaData*) ((void*)blk+sizeOfMetaData());
-//				}
-//			}
-//
-//			// there is not enough space
-//			struct BlockMetaData * tail = LIST_LAST(&block_list);
-//			void* ret;
-//			uint32 new_block_address = 0;
-//			uint32 old_brk_address =(uint32)sbrk(0);ret = sbrk(required_size);
-//
-//			if(ret == (void *)-1){
-//				return NULL;
-//			}
-//			else{
-//				struct BlockMetaData * new_block = ret;
-//				new_block->size = ((uint32)sbrk(0) - old_brk_address);
-//				new_block->is_free = 0;
-//				LIST_INSERT_AFTER(&block_list,tail,new_block);
-//				return(struct BlockMetaData*)( (void*)ret + sizeOfMetaData());
-//			}
-//
-//		    return NULL;
-//}
 
 void *alloc_block_FF(uint32 size)
 {
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
-	//panic("alloc_block_FF is not implemented yet");
+		    if(size==0)
+				return NULL;
 
-	if(size==0){
-		return NULL;
-	}
+		    if (!is_initialized)
+		    {
+				uint32 required_size = size + sizeOfMetaData();
+				uint32 da_start = (uint32)sbrk(required_size);
+				//get new break since it's page aligned! thus, the size can be more than the required one
+				uint32 da_break = (uint32)sbrk(0);
+				initialize_dynamic_allocator(da_start, da_break - da_start);
+		    }
 
-	if (!is_initialized)
-	{
+			uint32 required_size = size + sizeOfMetaData();
+			struct BlockMetaData* blk;
+			LIST_FOREACH(blk, &block_list)
+			{
+				if((blk)->is_free == 1 && blk->size == required_size){
+					blk->is_free = 0;
+					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData());
+				}
+				else if(blk->is_free == 1 && blk->size > required_size){
 
-		uint32 required_size = size + sizeOfMetaData();
-		uint32 da_start = (uint32)sbrk(required_size);
+					if(blk->size -required_size>=sizeOfMetaData()){
+					struct BlockMetaData * new_block = (void*)blk +required_size;
+					new_block->size = blk->size - required_size;
+					new_block->is_free = 1;
+					blk->size = required_size;
+					blk->is_free = 0;
+					LIST_INSERT_AFTER(&block_list,blk,new_block);
+					}
+					else{
+						blk->is_free = 0;
 
-
-
-		//get new break since it's page aligned! thus, the size can be more than the required one
-		uint32 da_break = (uint32)sbrk(0);
-
-
-		initialize_dynamic_allocator(da_start, da_break - da_start);
-
-	}
-	struct BlockMetaData *block;
-
-	LIST_FOREACH (block,&(block_list)){
-		if(!(block->is_free)){
-			continue;
-		}
-		else if(block->size-sizeOfMetaData()>=size){
-			if(block->size-sizeOfMetaData()==size){
-				block->is_free=(1==2);
-
-				return (struct BlockMetaData *)(block+1);
-			}
-			else if(block->size-sizeOfMetaData()>(size+sizeOfMetaData())){
-//	cprintf("here4\n");
-				struct BlockMetaData *new_block;
-				//assign new_block
-
-				void* addres;
-				addres=block;
-				addres+=size+sizeOfMetaData();
-				new_block=addres;
-				new_block->size=block->size-(size+sizeOfMetaData());
-				new_block->is_free=(1==1);
-				//new_block->prev_next_info.le_next=block->prev_next_info.le_next;
-
-
-				LIST_INSERT_AFTER(&(block_list),block,new_block);
-				 //modify block
-				block->is_free=(1==2);
-				block->size=size+sizeOfMetaData();
-//				cprintf("ptr=%p\n",(struct BlockMetaData *)(block+1));
-
-
-				return (struct BlockMetaData *)(block+1);
-
-
-			}
-			else{
-				block->is_free=(1==2);
-
-				return(struct BlockMetaData *) (block+1);
+					}
+						return(struct BlockMetaData*) ((void*)blk+sizeOfMetaData());
+				}
 			}
 
-		}
-		//cprintf("%x\n",block->prev_next_info.le_prev);
-//		cprintf("%x\n",block);
+			// there is not enough space
+			struct BlockMetaData * tail = LIST_LAST(&block_list);
+			void* ret;
+			uint32 new_block_address = 0;
+			uint32 old_brk_address =(uint32)sbrk(0);
+		    if(1){
+				ret = sbrk(required_size);
+				if(ret == (void *)-1){
+					return NULL;
+				}
+				else{
+					struct BlockMetaData *new_block;
+					new_block=ret;
+					 new_block->is_free=0;
+					 new_block->size=required_size;
+					 LIST_INSERT_AFTER(&block_list,tail,new_block);
+					 struct BlockMetaData *newst_block=(void*)new_block+required_size;
+					 newst_block->is_free=1;
+					 newst_block->size=sbrk(0)-ret-required_size;
+					 LIST_INSERT_AFTER(&block_list,new_block,newst_block);
+					 return(struct BlockMetaData*) ((void*)new_block+sizeOfMetaData());
 
-//		cprintf("%x\n",LIST_LAST(&block_list)->prev_next_info);
-
-
-	}
-	struct BlockMetaData *sbrk_block=LIST_LAST(&(block_list));
-
-//		 cprintf("herer 6\n");
-				 uint32* x=sbrk(0);
-				 void* check=sbrk(size+sizeOfMetaData());
-				 		 if(check!=NULL){
-				 			void* addres;
-				 			addres=sbrk_block;
-				 			addres+=sbrk_block->size;
-				 			 struct BlockMetaData *dblock;
-				 			 dblock = addres;
-				 			 dblock->is_free = 0;
-				 			 dblock->size=size+sizeOfMetaData();
-				 			LIST_INSERT_TAIL(&(block_list),dblock);
-				 			 struct BlockMetaData *new_block;
-				 			 void* new_addres;
-				 			 new_addres=dblock;
-				 			 new_addres+=dblock->size;
-				 			 new_block=new_addres;
-				 			 new_block->is_free=1;
-				 			 new_block->size= 4096 - dblock->size;
-				 			 new_block->prev_next_info.le_prev=dblock;
-				 		  	 LIST_INSERT_TAIL(&(block_list),new_block);
-//				 			 cprintf("here 7\n");
-				 			 return (struct BlockMetaData *) dblock + 1;
-
-	 }
-	return NULL;
+				}
+			}
+		    return NULL;
 }
 
 
-
-
-//void *alloc_block_FF(uint32 size)
-//{
-//	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
-//		    if(size==0)
-//				return NULL;
-//
-//		    if (!is_initialized)
-//		    {
-//				uint32 required_size = size + sizeOfMetaData();
-//				uint32 da_start = (uint32)sbrk(required_size);
-//				//get new break since it's page aligned! thus, the size can be more than the required one
-//				uint32 da_break = (uint32)sbrk(0);
-//				initialize_dynamic_allocator(da_start, da_break - da_start);
-//		    }
-//
-//			uint32 required_size = size + sizeOfMetaData();
-//			struct BlockMetaData* blk;
-//			LIST_FOREACH(blk, &block_list)
-//			{
-//				if((blk)->is_free == 1 && blk->size == required_size){
-//					blk->is_free = 0;
-//					return (struct BlockMetaData*)((void*)blk + sizeOfMetaData());
-//				}
-//				else if(blk->is_free == 1 && blk->size > required_size){
-//
-//					if(blk->size -required_size>=sizeOfMetaData()){
-//					struct BlockMetaData * new_block = (void*)blk +required_size;
-//					new_block->size = blk->size - required_size;
-//					new_block->is_free = 1;
-//					blk->size = required_size;
-//					blk->is_free = 0;
-//					LIST_INSERT_AFTER(&block_list,blk,new_block);
-//					}
-//					else{
-//						blk->is_free = 0;
-//
-//					}
-//						return(struct BlockMetaData*) ((void*)blk+sizeOfMetaData());
-//				}
-//			}
-//
-//			// there is not enough space
-//			struct BlockMetaData * tail = LIST_LAST(&block_list);
-//			void* ret;
-//			uint32 new_block_address = 0;
-//			uint32 old_brk_address =(uint32)sbrk(0);
-//		    if(tail->is_free == 0){
-//				ret = sbrk(required_size);
-//				if(ret == (void *)-1){
-//					return NULL;
-//				}
-//				else{
-//					struct BlockMetaData * new_block = ret;
-//					new_block->size = ((uint32)sbrk(0) - old_brk_address);
-//					new_block->is_free = 0;
-//					LIST_INSERT_AFTER(&block_list,tail,new_block);
-//
-//					return(struct BlockMetaData*)( (void*)ret + sizeOfMetaData());
-//				}
-//			}
-//			else{
-//				ret = sbrk(required_size - (tail->size));
-//				if(ret == (void *)-1){
-//					return NULL;
-//				}
-//			    else{
-//			    	tail->size = tail->size + ((uint32)sbrk(0) - old_brk_address);
-//			    	tail->is_free=0;
-//					return (struct BlockMetaData*)((void*)tail + sizeOfMetaData());
-//				}
-//			}
-//}
 
 
 void *alloc_block_BF(uint32 size)
@@ -461,153 +290,84 @@ void *alloc_block_NF(uint32 size)
 //===================================================
 
 
-
-uint32 get_block_up(struct BlockMetaData *blk)
-{
-	if(blk == NULL || blk->is_free == 0 || blk == LIST_FIRST(&(block_list)))
-		return 0;
-
-	uint32 ret = blk->size;
-
-	ret += get_block_up(blk->prev_next_info.le_next);
-	LIST_REMOVE(&(block_list),blk);
-
-	blk->size = 0;
-	blk->is_free = 0;
-
-	return ret;
-}
-struct BlockMetaData *get_block_down(struct BlockMetaData *blk)
-{
-
-	if(blk == LIST_FIRST(&(block_list)) && blk->is_free)
-		return blk;
-
-	if(blk->is_free == 0)
-		return blk->prev_next_info.le_next;
-
-	struct BlockMetaData *ret = get_block_down(blk->prev_next_info.le_prev);
-
-	if(ret == blk)
-		return ret;
-	LIST_REMOVE(&(block_list),blk);
-
-	ret->size += blk->size;
-	blk->size = 0;
-	blk->is_free = 0;
-
-	return ret;
-}
 void free_block(void *va)
 {
+//	last_block_address = NULL;
+
+	if(va !=NULL){
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
+		struct BlockMetaData* blk =(void*)va-sizeOfMetaData();
+		struct BlockMetaData* prevblk=	LIST_PREV(blk);
+		struct BlockMetaData* nextblk=	LIST_NEXT(blk);
+		if(blk==LIST_FIRST(&block_list)){
+			if((nextblk)->is_free==1)
+			{
+				(blk)->is_free=1;
+				(blk)->size+=(nextblk)->size;
+				nextblk->size=0;
+				nextblk->is_free=0;
+				LIST_REMOVE(&block_list, nextblk);
+				nextblk=0;
+			}
+			else{
 
-//	panic("wslttttt");
+				(blk)->is_free=1;
+			}
 
-	struct BlockMetaData *blk = va;
-	blk--;
-	blk->is_free = (1==1);
-	uint32 sz = 0;
+		}
+		else if (blk==LIST_LAST(&block_list)){
+			if((prevblk)->is_free==1){
+		    	(prevblk)->is_free=1;
+				(prevblk)->size+=(blk)->size;
+				blk->size=0;
+				blk->is_free=0;
+				LIST_REMOVE(&block_list, blk);
+		 		blk=0;
+		    }
+		    else{
+				(blk)->is_free=1;
+		    }
+		}
+		else{
+		if((prevblk)->is_free==1)
+		{
+			if((nextblk)->is_free==1)
+			{
+				(prevblk)->is_free=1;
+				(prevblk)->size+=(blk)->size + (nextblk)->size;
+				blk->size=0;
+				blk->is_free=0;
+				nextblk->size=0;
+				nextblk->is_free=0;
+				LIST_REMOVE(&block_list, blk);
+				LIST_REMOVE(&block_list, nextblk);
+				blk=0;
+				nextblk=0;
+			}
+			else{
+			(prevblk)->size+=(blk)->size;
+			(prevblk)->is_free=1;
+			blk->size=0;
+			blk->is_free=0;
+			LIST_REMOVE(&block_list, blk);
+			blk=0;}
+		}
 
-	if(blk != LIST_LAST(&(block_list)))
-		sz += get_block_up(blk->prev_next_info.le_next);
+		else if((nextblk)->is_free==1 &&(prevblk)->is_free==0)
+		{
+			(blk)->is_free=1;
+			(blk)->size+= (nextblk)->size;
+			nextblk->size=0;
+			nextblk->is_free=0;
+			LIST_REMOVE(&block_list,nextblk);
+			nextblk=0;
 
-	struct BlockMetaData *curr_bot = blk;
-
-	if(blk != LIST_FIRST(&(block_list)))
-		curr_bot = get_block_down(blk->prev_next_info.le_prev);
-
-	if(curr_bot != blk)
-	{
-		LIST_REMOVE(&(block_list),blk);
-		sz += blk->size;
-		blk->size = 0;
-		blk->is_free = 0;
+		}
+		else if((prevblk)->is_free==0&&(nextblk)->is_free==0)
+		(blk)->is_free=1;
 	}
-
-	curr_bot->size += sz;
-	curr_bot->is_free = (1==1);
+  }
 }
-
-
-
-
-//void free_block(void *va)
-//{
-//	if(va !=NULL){
-//	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
-//		struct BlockMetaData* blk =(void*)va-sizeOfMetaData();
-//		struct BlockMetaData* prevblk=	LIST_PREV(blk);
-//		struct BlockMetaData* nextblk=	LIST_NEXT(blk);
-//		if(blk==LIST_FIRST(&block_list)){
-//			if((nextblk)->is_free==1)
-//			{
-//				(blk)->is_free=1;
-//				(blk)->size+=(nextblk)->size;
-//				nextblk->size=0;
-//				nextblk->is_free=0;
-//				LIST_REMOVE(&block_list, nextblk);
-//				nextblk=0;
-//			}
-//			else{
-//
-//				(blk)->is_free=1;
-//			}
-//
-//		}
-//		else if (blk==LIST_LAST(&block_list)){
-//			if((prevblk)->is_free==1){
-//		    	(prevblk)->is_free=1;
-//				(prevblk)->size+=(blk)->size;
-//				blk->size=0;
-//				blk->is_free=0;
-//				LIST_REMOVE(&block_list, blk);
-//		 		blk=0;
-//		    }
-//		    else{
-//				(blk)->is_free=1;
-//		    }
-//		}
-//		else{
-//		if((prevblk)->is_free==1)
-//		{
-//			if((nextblk)->is_free==1)
-//			{
-//				(prevblk)->is_free=1;
-//				(prevblk)->size+=(blk)->size + (nextblk)->size;
-//				blk->size=0;
-//				blk->is_free=0;
-//				nextblk->size=0;
-//				nextblk->is_free=0;
-//				LIST_REMOVE(&block_list, blk);
-//				LIST_REMOVE(&block_list, nextblk);
-//				blk=0;
-//				nextblk=0;
-//			}
-//			else{
-//			(prevblk)->size+=(blk)->size;
-//			(prevblk)->is_free=1;
-//			blk->size=0;
-//			blk->is_free=0;
-//			LIST_REMOVE(&block_list, blk);
-//			blk=0;}
-//		}
-//
-//		else if((nextblk)->is_free==1 &&(prevblk)->is_free==0)
-//		{
-//			(blk)->is_free=1;
-//			(blk)->size+= (nextblk)->size;
-//			nextblk->size=0;
-//			nextblk->is_free=0;
-//			LIST_REMOVE(&block_list,nextblk);
-//			nextblk=0;
-//
-//		}
-//		else if((prevblk)->is_free==0&&(nextblk)->is_free==0)
-//		(blk)->is_free=1;
-//	}
-//  }
-//}
 
 //=========================================
 // [4] REALLOCATE BLOCK BY FIRST FIT:

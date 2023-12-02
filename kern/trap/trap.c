@@ -364,10 +364,7 @@ void fault_handler(struct Trapframe *tf)
 	//If the directory entry of the faulted address is NOT PRESENT then
 	if ( (faulted_env->env_page_directory[PDX(fault_va)] & PERM_PRESENT) != PERM_PRESENT)
 	{
-		// we have a table fault =============================================================
-		//cprintf("[%s] user TABLE fault va %08x\n", curenv->prog_name, fault_va);
 		faulted_env->tableFaultsCounter ++ ;
-
 		table_fault_handler(faulted_env, fault_va);
 	}
 	else
@@ -390,11 +387,12 @@ void fault_handler(struct Trapframe *tf)
         	   }
            }
            else{
-        	   if((page_table[index] & PERM_AVAILABLE)!= PERM_AVAILABLE){
-        	           	sched_kill_env(curenv->env_id);
+        	   if(fault_va<=USER_HEAP_MAX && fault_va >= USER_HEAP_START){
+        		   if((page_table[index] & PERM_AVAILABLE)!= PERM_AVAILABLE){
+        		       sched_kill_env(curenv->env_id);
+        		   }
         	   }
            }
-
 			/*============================================================================================*/
 		}
 
@@ -402,14 +400,8 @@ void fault_handler(struct Trapframe *tf)
 		int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
 		if (perms & PERM_PRESENT)
 			panic("Page @va=%x is exist! page fault due to violation of ACCESS RIGHTS\n", fault_va) ;
-
-
 		// we have normal page fault =============================================================
 		faulted_env->pageFaultsCounter ++ ;
-
-		//		cprintf("[%08s] user PAGE fault va %08x\n", curenv->prog_name, fault_va);
-		//		cprintf("\nPage working set BEFORE fault handler...\n");
-		//		env_page_ws_print(curenv);
 
 		if(isBufferingEnabled())
 		{
@@ -417,13 +409,8 @@ void fault_handler(struct Trapframe *tf)
 		}
 		else
 		{
-			//page_fault_handler(faulted_env, fault_va);
 			page_fault_handler(faulted_env, fault_va);
 		}
-		//		cprintf("\nPage working set AFTER fault handler...\n");
-		//		env_page_ws_print(curenv);
-
-
 	}
 
 	/*************************************************************/

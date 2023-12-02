@@ -228,25 +228,122 @@ void kexpand(uint32 newSize)
 //	A call with virtual_address = null is equivalent to kmalloc().
 //	A call with new_size = zero is equivalent to kfree().
 
+
 void *krealloc(void *virtual_address, uint32 new_size)
 {
 	//TODO: [PROJECT'23.MS2 - BONUS#1] [1] KERNEL HEAP - krealloc()
 	// Write your code here, remove the panic and write your code
+	uint32 new_pages_to_allocate = ROUNDUP(new_size , PAGE_SIZE)/PAGE_SIZE;
+	uint32 new_va = -1;
+	if(new_size == 0)
+	{
+		kfree(virtual_address);
+		return NULL;
+	}
 
+	uint32 vir_add = (uint32) virtual_address;
+	if(virtual_address == NULL)
+	{
+		return kmalloc(new_size);
+	}
 
+	if(vir_add  >= da_Start
+			&& vir_add  <= brk)
+	{
+		if(new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+		{
+			return realloc_block_FF(virtual_address , new_size);
+		}else {
+			kfree(virtual_address);
+			return kmalloc(new_size);
+		}
+	}else if(vir_add  >= HARD_LIMIT + PAGE_SIZE
+			&& vir_add <= KERNEL_HEAP_MAX)
+	{
+		uint32 * ptr_page_table = NULL;
+		struct FrameInfo *ptr = get_frame_info(ptr_page_directory
+				,vir_add ,&ptr_page_table);
+		uint32 old_pages = ptr->size;
 
+		if(new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+		{
+			kfree(virtual_address);
+			return kmalloc(new_size);
+		}else if(old_pages > new_pages_to_allocate) {
 
+			uint32 diff = old_pages - new_pages_to_allocate;
 
+			new_va = vir_add + (new_pages_to_allocate+1)
+					* PAGE_SIZE;
 
+			ptr->size = new_pages_to_allocate;
 
+			for(int i = 0; i<diff ; i++)
+			{
+				unmap_frame(ptr_page_directory , new_va);
+				new_va+=PAGE_SIZE;
+			}
+			return virtual_address;
+		}else if(old_pages < new_pages_to_allocate){
+			uint32 diff = new_pages_to_allocate - old_pages;
 
+			new_va = vir_add + (old_pages+1)
+					* PAGE_SIZE;
+			uint32 cnt = 0;
+			uint32 start_va = new_va;
+			while(new_va != KERNEL_HEAP_MAX)
+			{
+				uint32 * page_table=NULL;
+				struct FrameInfo *ptr = get_frame_info(ptr_page_directory
+						,new_va,&page_table);
 
+				if(ptr == NULL)
+				{
+					cnt++;
+				}
+				else {
+					kfree(virtual_address);
+					return kmalloc(new_size);
+				}
 
+				if(cnt == diff)
+				{
+					ptr->size = new_pages_to_allocate;
+					for(int i = 0; i < diff ; i++)
+					{
+						struct FrameInfo * ptr2 = NULL;
+						int r = allocate_frame(&ptr2);
+						map_frame(ptr_page_directory , ptr2
+								,start_va, PERM_WRITEABLE);
+						start_va += PAGE_SIZE;
+					}
+					return virtual_address;
+				}
+				new_va += PAGE_SIZE;
+			}
 
-
-
-
-
+			kfree(virtual_address);
+			return kmalloc(new_size);
+		}
+	}
 	return NULL;
-	panic("krealloc() is not implemented yet...!!");
+//	panic("krealloc() is not implemented yet...!!");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

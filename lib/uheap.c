@@ -36,13 +36,15 @@ void* sbrk(int increment)
 //=================================
 
 
-char mark[150000]; //mego_o
+char mark[200000]; //mego_o
 void* malloc(uint32 size)
 {
+
+//  cprintf("sssss %d",(uint32) (USER_HEAP_MAX - sys_get_hard_limit()));
+
   //DON'T CHANGE THIS CODE========================================
   InitializeUHeap();
   if (size == 0) return NULL ;
-
   //==============================================================
   //TODO: [PROJECT'23.MS2 - #09] [2] USER HEAP - malloc() [User Side]
   // Write your code here, remove the panic and write your code
@@ -50,7 +52,7 @@ void* malloc(uint32 size)
   void * ret = NULL;
   if(sys_isUHeapPlacementStrategyFIRSTFIT()){
 	    if(size <= DYN_ALLOC_MAX_BLOCK_SIZE){
-	      return (void *) alloc_block_FF(size);
+	       return (void *) alloc_block_FF(size);
 	    }
 	    else{
 	     uint32 pages_to_alloc = ROUNDUP( size , PAGE_SIZE) / PAGE_SIZE;
@@ -91,18 +93,13 @@ void* malloc(uint32 size)
 //=================================
 void free(void* virtual_address){
 //TODO: [PROJECT'23.MS2 - #04] [1] KERNEL HEAP - kfree()
-
-//	int x = 0;
     uint32 off = sys_get_hard_limit() + PAGE_SIZE;
-    if(virtual_address >= (void *)USER_HEAP_START&&
-       virtual_address <=(void *) sys_get_hard_limit()){
+    if(virtual_address >= (void *)USER_HEAP_START &&
+       virtual_address <= (void *) sys_get_hard_limit()){
         free_block(virtual_address);
     }
     else if (virtual_address >=(void *) (sys_get_hard_limit() + PAGE_SIZE)&&
              virtual_address <=(void *) USER_HEAP_MAX){
-
-//      panic("a7aaaaa");
-
       uint32 block_counter = 0;
 	  uint32 va = (uint32)virtual_address;
 	  if(mark[(va-off)/PAGE_SIZE]!=1 && mark[(va-off)/PAGE_SIZE]!=5) panic("userfree() invalid virtual address !!");
@@ -124,6 +121,7 @@ void free(void* virtual_address){
       panic("userfree() invalid virtual address !!");
     }
 }
+
 //=================================
 // [4] ALLOCATE SHARED VARIABLE:
 //=================================
@@ -178,9 +176,95 @@ void *realloc(void *virtual_address, uint32 new_size)
   //DON'T CHANGE THIS CODE========================================
   InitializeUHeap();
   //==============================================================
+
   // Write your code here, remove the panic and write your code
-  panic("realloc() is not implemented yet...!!");
+  if(virtual_address == NULL)
+  {
+	  return malloc(new_size);
+  }
+  if(new_size == 0)
+  {
+	  free(virtual_address);
+	  return NULL;
+  }
+
+  if(virtual_address >= (void *)USER_HEAP_START
+    && virtual_address<=(void *) myEnv->user_brk)
+  {
+	  if(new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+	  {
+		  return realloc_block_FF(virtual_address , new_size);
+	  }else
+	  {
+		  free(virtual_address);
+		  return malloc(new_size);
+	  }
+  }else if(virtual_address >= (void *)(sys_get_hard_limit() + PAGE_SIZE)
+		  && virtual_address <= (void *)USER_HEAP_MAX)
+  {
+	  uint32 start_va = (uint32) virtual_address;
+	  uint32 base = sys_get_hard_limit() + PAGE_SIZE;
+	  uint32 old_pages = 0;
+
+	  while(start_va != USER_HEAP_MAX)
+	  {
+		  if(mark[(start_va  - base) / PAGE_SIZE] == 5)
+		  {
+			  old_pages++;
+			  break;
+		  }
+		  old_pages++;
+		  start_va+=PAGE_SIZE;
+	  }
+
+	  uint32 new_pages_alloc = ROUNDUP(new_size , PAGE_SIZE)/PAGE_SIZE;
+	  if(new_pages_alloc < old_pages)
+	  {
+		  uint32 diff = old_pages - new_pages_alloc;
+		  for(int i = 0;i<diff ;i++)
+		  {
+			  mark[(start_va - base) / PAGE_SIZE] =  0;
+			  start_va -= PAGE_SIZE;
+		  }
+		  mark[(start_va - base) / PAGE_SIZE] = 5;
+
+		  return virtual_address;
+	  }else if(new_pages_alloc > old_pages)
+	  {
+		  uint32 diff =  new_pages_alloc - old_pages;
+		  uint32 cnt = 0;
+		  uint32 temp_start = start_va;
+		  for(int i = 0;i<diff ;i++)
+		  {
+			  if(mark[(start_va - base) / PAGE_SIZE] != 1
+					  &&mark[(start_va - base) / PAGE_SIZE] != 5)
+			  {
+				  cnt++;
+			  }
+			  start_va += PAGE_SIZE;
+		  }
+		  if(cnt == diff)
+		  {
+			  for(int i = 0;i<diff ;i++)
+			  {
+				  mark[(start_va - base) / PAGE_SIZE] = 1;
+				  if(i == diff -1)
+				  {
+					  mark[(start_va - base) / PAGE_SIZE] = 5;
+				  }
+				  temp_start += PAGE_SIZE;
+			  }
+			  return virtual_address;
+		  }
+		  else
+		  {
+			  free(virtual_address);
+			  return malloc(new_size);
+		  }
+	  }
+  }
   return NULL;
+  //  panic("realloc() is not implemented yet...!!");
 
 }
 

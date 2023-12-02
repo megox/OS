@@ -26,9 +26,7 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 	else{
 		panic("failed to create a new working set element ");
 	}
-//	if(new_ws==NULL) hi3ml panic fe kmalloc lw mfi4 makn
-//		panic("Failed to create element");
-
+return NULL;
 }
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
@@ -71,25 +69,20 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 	}
 	else
 	{
-		struct WorkingSetElement *wse;
-		LIST_FOREACH(wse, &(e->page_WS_list))
-		{
-			if(ROUNDDOWN(wse->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
-			{
-				if (e->page_last_WS_element == wse)
-				{
-					e->page_last_WS_element = LIST_NEXT(wse);
-				}
-				LIST_REMOVE(&(e->page_WS_list), wse);
+		uint32*ptr_page_table=NULL;
+			struct FrameInfo* Active_frame =get_frame_info(e->env_page_directory,virtual_address,&ptr_page_table);
+			if(Active_frame!=NULL&&Active_frame->element!=NULL){
+				struct WorkingSetElement*Active_elm=Active_frame->element;
+				if (e->page_last_WS_element == Active_elm)
+					{
+						e->page_last_WS_element = LIST_NEXT(Active_elm);
+					}
+				LIST_REMOVE(&(e->page_WS_list), Active_elm);
 
-				kfree(wse);
-
-				break;
+				kfree(Active_elm);
 			}
-		}
 	}
 }
-
 void env_page_ws_print(struct Env *e)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))

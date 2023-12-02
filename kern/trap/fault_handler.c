@@ -83,35 +83,36 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		uint32 wsSize = env_page_ws_get_size(curenv);
 #endif
 
-	if(wsSize < (curenv->page_WS_max_size))
-	{
-		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
-		//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
-		// Write your code here, remove the panic and write your code
-			int ret3 = pf_read_env_page(curenv, (void*)fault_va);
-			//the page not exist in page file
-			if (ret3 == E_PAGE_NOT_EXIST_IN_PF){
-				if((fault_va<USER_HEAP_START || fault_va>USER_HEAP_MAX)
-					&& (fault_va>USTACKTOP||fault_va<USTACKBOTTOM)){
-				  sched_kill_env(curenv->env_id);
-				}
+		if(wsSize < (curenv->page_WS_max_size))
+			{
+				//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
+				//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
+				// Write your code here, remove the panic and write your code
+					int ret3 = pf_read_env_page(curenv, (void*)fault_va);
+					//the page not exist in page file
+					if (ret3 == E_PAGE_NOT_EXIST_IN_PF){
+						if((fault_va<USER_HEAP_START || fault_va>USER_HEAP_MAX)
+							&& (fault_va>USTACKTOP||fault_va<USTACKBOTTOM)){
+						  sched_kill_env(curenv->env_id);
+						}
+					}
+					struct FrameInfo *new_frame ;
+					int ret = allocate_frame(&new_frame);
+					if(ret==0){
+						ret=map_frame(curenv->env_page_directory,new_frame,fault_va,PERM_USER|PERM_WRITEABLE|PERM_PRESENT);
+						if(ret==0){
+						  struct WorkingSetElement*new_elm= env_page_ws_list_create_element(curenv,fault_va);
+						  LIST_INSERT_TAIL(&(curenv->page_WS_list),new_elm);
+						  new_frame->element=new_elm;
+						  if((curenv->page_WS_max_size)==LIST_SIZE(&(curenv->page_WS_list))){
+							  curenv->page_last_WS_element=LIST_FIRST(&(curenv->page_WS_list));
+						  }
+						  else{
+							  curenv->page_last_WS_element=NULL;
+						  }
+						}
+					}
 			}
-			struct FrameInfo *new_frame ;
-			int ret = allocate_frame(&new_frame);
-			if(ret==0){
-				ret=map_frame(curenv->env_page_directory,new_frame,fault_va,PERM_USER|PERM_WRITEABLE|PERM_PRESENT);
-				if(ret==0){
-				  struct WorkingSetElement*new_elm= env_page_ws_list_create_element(curenv,fault_va);
-				  LIST_INSERT_TAIL(&(curenv->page_WS_list),new_elm);
-				  if((curenv->page_WS_max_size)==LIST_SIZE(&(curenv->page_WS_list))){
-					  curenv->page_last_WS_element=LIST_FIRST(&(curenv->page_WS_list));
-				  }
-				  else{
-					  curenv->page_last_WS_element=NULL;
-				  }
-				}
-			}
-	}
 	else
 	{
 		//refer to the project presentation and documentation for details
