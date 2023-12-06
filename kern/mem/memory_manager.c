@@ -212,6 +212,7 @@ int get_page_table(uint32 *ptr_page_directory, const uint32 virtual_address, uin
 	//	cprintf("gpt .05\n");
 	uint32 page_directory_entry = ptr_page_directory[PDX(virtual_address)];
 
+
 	//2022: check PERM_PRESENT of the table first before calculating its PA
 	if ( (page_directory_entry & PERM_PRESENT) == PERM_PRESENT)
 	{
@@ -325,7 +326,8 @@ void __static_cpt(uint32 *ptr_directory, const uint32 virtual_address, uint32 **
 //
 int map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_info, uint32 virtual_address, int perm)
 {
-	// Fill this function in
+	ptr_frame_info ->va = virtual_address; //mego_o
+
 	uint32 physical_address = to_physical_address(ptr_frame_info);
 	uint32 *ptr_page_table;
 	if( get_page_table(ptr_page_directory, virtual_address, &ptr_page_table) == TABLE_NOT_EXIST)

@@ -10,7 +10,8 @@
 
 #include <inc/types.h>
 
-
+int load_avg;//mego_o(fixed)
+int ready_proc;//mego_o
 
 /*2017*/
 uint32 _KHeapPlacementStrategy;

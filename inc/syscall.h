@@ -58,6 +58,7 @@ enum
 	SYS_FREE_USER_MEM,
 	SYS_get_hard_limit,
 	SYS_get_user_brk,
+	SYS_env_set_nice,
 	//=====================================================================
 	NSYSCALLS
 };

@@ -7,7 +7,7 @@
 #include <inc/assert.h>
 #include <inc/elf.h>
 #include <inc/dynamic_allocator.h>
-
+int f = 16384;
 #include <kern/proc/user_environment.h>
 #include <kern/trap/trap.h>
 #include <kern/trap/fault_handler.h>
@@ -77,7 +77,6 @@ void set_environment_entry_point(struct Env* e, uint8* ptr_program_start);
 /******************************/
 /* MAIN FUNCTIONS */
 /******************************/
-
 //===============================
 // 1) CREATE NEW ENV & LOAD IT:
 //===============================
@@ -109,6 +108,7 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 	{
 		return 0;
 	}
+    ready_proc++; //ready++ (mego_o)//
 
 	//[2.5 - 2012] Set program name inside the environment
 	//e->prog_name = ptr_user_program_info->name ;
@@ -599,6 +599,8 @@ int allocate_environment(struct Env** e)
 // Free the given environment "e", simply by adding it to the free environment list.
 void free_environment(struct Env* e)
 {
+    ready_proc--;//load-- (mego_o)//
+
 	memset(e, 0, sizeof(*e));
 	e->env_status = ENV_FREE;
 	LIST_INSERT_HEAD(&env_free_list, e);
@@ -802,6 +804,8 @@ void initialize_uheap_dynamic_allocator(struct Env* e, uint32 daStart, uint32 da
 //
 void initialize_environment(struct Env* e, uint32* ptr_user_page_directory, unsigned int phys_user_page_directory)
 {
+//	e.nice_value=0 //mego_o
+//	e.recent_cpu_time=0 ;//mego_o
 	//panic("initialize_environment function is not completed yet") ;
 	// [1] initialize the kernel portion of the new environment's address space.
 	// [2] set e->env_pgdir and e->env_cr3 accordingly,

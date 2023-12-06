@@ -35,13 +35,9 @@ void* sbrk(int increment)
 // [2] ALLOCATE SPACE IN USER HEAP:
 //=================================
 
-
 char mark[200000]; //mego_o
 void* malloc(uint32 size)
 {
-
-//  cprintf("sssss %d",(uint32) (USER_HEAP_MAX - sys_get_hard_limit()));
-
   //DON'T CHANGE THIS CODE========================================
   InitializeUHeap();
   if (size == 0) return NULL ;

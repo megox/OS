@@ -478,7 +478,7 @@ void sys_bypassPageFault(uint8 instrLength)
 /* DYNAMIC ALLOCATOR SYSTEM CALLS */
 /**********************************/
 /*2024*/
-
+////////////////////////////////////////////////mego_o
 uint32 sys_get_hard_limit(){
 	return curenv->user_limit;
 }
@@ -487,7 +487,9 @@ uint32 sys_get_user_brk(){
 	return curenv->user_brk;
 }
 
-
+void sys_env_set_nice(int nice_value){
+	env_set_nice(curenv,nice_value);
+}
 
 
 void* sys_sbrk(int increment)
@@ -598,8 +600,15 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 			return 0;
 			break;
 		}
+
+		case SYS_env_set_nice:{
+			sys_env_set_nice((int)a1);
+						return 0;
+						break;
+
+		}
 	/////////////////////
-	//=====================================================================
+//=====================================================================
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);
 		return 0;

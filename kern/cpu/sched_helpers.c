@@ -542,36 +542,34 @@ int64 timer_ticks()
 {
 	return ticks;
 }
+
 int env_get_nice(struct Env* e)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_nice
-	//Your code is here
-	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+	return e->nice_value;
 }
+
 void env_set_nice(struct Env* e, int nice_value)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
-	//Your code is here
-	//Comment the following line
-	panic("Not implemented yet");
+	e->nice_value = nice_value;
+	int x = env_get_recent_cpu(e) / 4;
+	int p = PRI_MAX - x - (e->nice_value * 2);
+	e->priority = p;
 }
+
 int env_get_recent_cpu(struct Env* e)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_recent_cpu
-	//Your code is here
-	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+	fixed_point_t x = fix_scale(__mk_fix(e->recent_cpu_time),100);
+	return fix_round(x);
 }
 int get_load_average()
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - get_load_average
-	//Your code is here
-	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+	fixed_point_t x = fix_scale(__mk_fix(load_avg),100);
+	return fix_round(x);
 }
+
 /********* for BSD Priority Scheduler *************/
 //==================================================================================//

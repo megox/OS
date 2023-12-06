@@ -163,9 +163,17 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 {
 #if USE_KHEAP
 	//TODO: [PROJECT'23.MS3 - #4] [2] BSD SCHEDULER - sched_init_BSD
-	//Your code is here
-	//Comment the following line
-	panic("Not implemented yet");
+    load_avg = 0;
+    ready_proc = 0;
+	int size = sizeof(struct Env_Queue);
+	env_ready_queues = kmalloc(numOfLevels * size);
+	quantums = kmalloc(numOfLevels * sizeof(uint8)) ;
+    num_of_ready_queues = numOfLevels;
+    for(int i = 0;i<numOfLevels;i++){
+    	 quantums[i] = quantum;
+    	 kclock_set_quantum(quantums[i]);
+    	 init_queue(&(env_ready_queues[i]));
+    }
 
 	//=========================================
 	//DON'T CHANGE THESE LINES=================
@@ -175,7 +183,6 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 	//=========================================
 #endif
 }
-
 
 //=========================
 // [6] MLFQ Scheduler:
@@ -192,9 +199,15 @@ struct Env* fos_scheduler_MLFQ()
 struct Env* fos_scheduler_BSD()
 {
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
-	//Your code is here
-	//Comment the following line
-	panic("Not implemented yet");
+	for(int i = 0;i<num_of_ready_queues;i++){
+		if(LIST_SIZE(&env_ready_queues[i]) != 0){
+			struct Env* e = LIST_FIRST(&env_ready_queues[i]);
+			LIST_REMOVE(&env_ready_queues[i],e);
+			LIST_INSERT_TAIL(&env_ready_queues[i],e);
+
+			return e;
+		}
+	}
 	return NULL;
 }
 

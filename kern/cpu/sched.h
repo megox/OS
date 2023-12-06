@@ -26,8 +26,9 @@ struct Env_Queue env_exit_queue;	// queue of all exited envs
 //2018:
 //2020:
 #if USE_KHEAP
-	struct Env_Queue *env_ready_queues;	// Ready queue(s) for the MLFQ or RR
-	uint8 *quantums ;					// Quantum(s) in ms for each level of the ready queue(s)
+	struct Env_Queue * env_ready_queues; // Ready queue(s) for the MLFQ or RR
+	uint8 *quantums ;					 // Quantum(s) in ms for each level of the ready queue(s)
+
 #else
 	//RR ONLY
 	struct Env_Queue env_ready_queues[1];	// Ready queue(s) for the RR
@@ -35,6 +36,7 @@ struct Env_Queue env_exit_queue;	// queue of all exited envs
 #endif
 uint8 num_of_ready_queues ;			// Number of ready queue(s)
 //===============
+
 
 //2015
 #define SCH_UNINITIALIZED -1

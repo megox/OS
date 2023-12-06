@@ -82,7 +82,7 @@ uint32 sys_get_user_brk(); //mego_o
 
 int sys_get_page_table(uint32* ptr_page_dir ,const uint32 va ,uint32**ptr_page_table); //mego_o
 
-
+void 	sys_env_set_nice(int nice_value);
 void 	sys_free_user_mem(uint32 virtual_address, uint32 size);
 void	sys_allocate_user_mem(uint32 virtual_address, uint32 size);
 void	sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms);

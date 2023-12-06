@@ -366,3 +366,12 @@ void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
 	return;
 }
 
+
+void sys_env_set_nice(int nice_value)
+{
+	//Comment the following line before start coding...
+	 syscall(SYS_env_set_nice ,(uint32) nice_value,0 , 0, 0, 0);
+	 return;
+}
+
+

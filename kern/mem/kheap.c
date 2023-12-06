@@ -180,10 +180,6 @@ unsigned int kheap_virtual_address(unsigned int physical_address)
 unsigned int kheap_physical_address(unsigned int virtual_address)
 {
 	//TODO: [PROJECT'23.MS2 - #06] [1] KERNEL HEAP - kheap_physical_address()
-	//refer to the project presentation and documentation for details
-	// Write your code here, remove the panic and write your code
-//	panic("kheap_physical_address() is not implemented yet...!!");
-
 	uint32 *ptr_page_table = NULL;
 	uint32 va = (uint32)virtual_address % PAGE_SIZE;
 	struct FrameInfo *ptr = get_frame_info(ptr_page_directory , (uint32)virtual_address , &ptr_page_table );
@@ -191,7 +187,6 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 	{
 		return (uint32)to_physical_address(ptr) + va;
 	}
-	//change this "return" according to your answer
 	return 0;
 }
 
