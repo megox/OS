@@ -12,6 +12,8 @@
 
 // Page WS helper functions ===================================================
 void env_page_ws_print(struct Env *curenv);
+inline void working_set_elm_free(struct WorkingSetElement* elem);
+
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address);
 
 #if USE_KHEAP

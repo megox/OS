@@ -80,6 +80,7 @@ LIST_HEAD(WS_List, WorkingSetElement);		// Declares 'struct WS_list'
 
 
 struct Env {
+	char mark[200000];
 	//================
 	/*MAIN INFO...*/
 	//================
@@ -88,9 +89,9 @@ struct Env {
 	int32 env_id;					// Unique environment identifier
 	int32 env_parent_id;			// env_id of this env's parent
 	unsigned env_status;			// Status of the environment
-	int priority;		            // Current priority
-	int nice_value;//mego_o
-	int recent_cpu_time;//mego_o
+	int32 priority;		            // Current priority
+	int32 nice_value;//mego_o
+	int32 recent_cpu_time;//mego_o
 	char prog_name[PROGNAMELEN];	// Program name (to print it via USER.cprintf in multitasking)
 
 	//================

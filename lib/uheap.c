@@ -35,7 +35,7 @@ void* sbrk(int increment)
 // [2] ALLOCATE SPACE IN USER HEAP:
 //=================================
 
-char mark[200000]; //mego_o
+char mark[200000];//mego_o
 void* malloc(uint32 size)
 {
   //DON'T CHANGE THIS CODE========================================
@@ -57,15 +57,15 @@ void* malloc(uint32 size)
 	     uint32 off = sys_get_hard_limit() + PAGE_SIZE;
 	     uint32  start_va_to_mark;
 	      while(va != USER_HEAP_MAX){
-	         int r = mark[(va-off) / PAGE_SIZE];
+	         int r = myEnv->mark[(va-off) / PAGE_SIZE];
 	         if(r!=1 && r!=5){
 	           counter++;
 	           if(counter == 1) start_va_to_mark = va;
 	           if(counter == pages_to_alloc){
 	             uint32 virtual_address = start_va_to_mark;
 	             for(int i=0 ; i<counter ;i++){
-	              mark[(virtual_address-off) / PAGE_SIZE] = 1;
-	              if(i == counter - 1) mark[(virtual_address-off) / PAGE_SIZE] = 5;//(5) is to mark the last page of block
+	              myEnv->mark[(virtual_address-off) / PAGE_SIZE] = 1;
+	              if(i == counter - 1) myEnv->mark[(virtual_address-off) / PAGE_SIZE] = 5;//(5) is to mark the last page of block
 	              virtual_address+=PAGE_SIZE;
 	             }
 	             ret = (void *)start_va_to_mark;
@@ -98,16 +98,16 @@ void free(void* virtual_address){
              virtual_address <=(void *) USER_HEAP_MAX){
       uint32 block_counter = 0;
 	  uint32 va = (uint32)virtual_address;
-	  if(mark[(va-off)/PAGE_SIZE]!=1 && mark[(va-off)/PAGE_SIZE]!=5) panic("userfree() invalid virtual address !!");
+	  if(myEnv->mark[(va-off)/PAGE_SIZE]!=1 && myEnv->mark[(va-off)/PAGE_SIZE]!=5) panic("userfree() invalid virtual address !!");
 	  while(va!=USER_HEAP_MAX){
-		  if(mark[(va-off)/PAGE_SIZE]==5){
+		  if(myEnv->mark[(va-off)/PAGE_SIZE]==5){
 			  block_counter++;
-			  mark[(va-off)/PAGE_SIZE] = 0;
+			  myEnv->mark[(va-off)/PAGE_SIZE] = 0;
 			  break;
 		  }
 		  else{
 			  block_counter++;
-			  mark[(va-off)/PAGE_SIZE] = 0;
+			  myEnv->mark[(va-off)/PAGE_SIZE] = 0;
 		  }
         va+=PAGE_SIZE;
       }
@@ -166,6 +166,7 @@ void* sget(int32 ownerEnvID, char *sharedVarName)
 //		which switches to the kernel mode, calls move_user_mem(...)
 //		in "kern/mem/chunk_operations.c", then switch back to the user mode here
 //	the move_user_mem() function is empty, make sure to implement it.
+
 void *realloc(void *virtual_address, uint32 new_size)
 {
   //==============================================================
@@ -204,7 +205,7 @@ void *realloc(void *virtual_address, uint32 new_size)
 
 	  while(start_va != USER_HEAP_MAX)
 	  {
-		  if(mark[(start_va  - base) / PAGE_SIZE] == 5)
+		  if(myEnv->mark[(start_va  - base) / PAGE_SIZE] == 5)
 		  {
 			  old_pages++;
 			  break;
@@ -219,10 +220,10 @@ void *realloc(void *virtual_address, uint32 new_size)
 		  uint32 diff = old_pages - new_pages_alloc;
 		  for(int i = 0;i<diff ;i++)
 		  {
-			  mark[(start_va - base) / PAGE_SIZE] =  0;
+			  myEnv->mark[(start_va - base) / PAGE_SIZE] =  0;
 			  start_va -= PAGE_SIZE;
 		  }
-		  mark[(start_va - base) / PAGE_SIZE] = 5;
+		  myEnv->mark[(start_va - base) / PAGE_SIZE] = 5;
 
 		  return virtual_address;
 	  }else if(new_pages_alloc > old_pages)
@@ -232,8 +233,8 @@ void *realloc(void *virtual_address, uint32 new_size)
 		  uint32 temp_start = start_va;
 		  for(int i = 0;i<diff ;i++)
 		  {
-			  if(mark[(start_va - base) / PAGE_SIZE] != 1
-					  &&mark[(start_va - base) / PAGE_SIZE] != 5)
+			  if(myEnv->mark[(start_va - base) / PAGE_SIZE] != 1
+					  &&myEnv->mark[(start_va - base) / PAGE_SIZE] != 5)
 			  {
 				  cnt++;
 			  }
@@ -243,10 +244,10 @@ void *realloc(void *virtual_address, uint32 new_size)
 		  {
 			  for(int i = 0;i<diff ;i++)
 			  {
-				  mark[(start_va - base) / PAGE_SIZE] = 1;
+				  myEnv->mark[(start_va - base) / PAGE_SIZE] = 1;
 				  if(i == diff -1)
 				  {
-					  mark[(start_va - base) / PAGE_SIZE] = 5;
+					  myEnv->mark[(start_va - base) / PAGE_SIZE] = 5;
 				  }
 				  temp_start += PAGE_SIZE;
 			  }

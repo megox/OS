@@ -13,20 +13,21 @@
 ///============================================================================================
 /// Dealing with environment working set
 #if USE_KHEAP
+inline void working_set_elm_free(struct WorkingSetElement* elem){
+	kfree(elem);
+}
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
 	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
 	// Write your code here, remove the panic and write your code
-	if(e->page_last_WS_element==NULL){
 	struct WorkingSetElement* ret = kmalloc(sizeof(struct WorkingSetElement));
-	struct WorkingSetElement* new_ws = ret;
-	new_ws-> virtual_address = virtual_address; // t2repn m4 m7tagin da hwa bi7gz bs w himlaha b3din b addres tani
-	return new_ws;
-	}
-	else{
-		panic("failed to create a new working set element ");
-	}
-return NULL;
+	uint32*page_table=NULL;
+	get_page_table(e->env_page_directory,virtual_address,&page_table);
+	ret-> virtual_address = virtual_address;
+	struct FrameInfo* frame=get_frame_info(e->env_page_directory,virtual_address,&page_table);
+	frame->element=ret;
+ // t2repn m4 m7tagin da hwa bi7gz bs w himlaha b3din b addres tani
+	return ret;
 }
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {

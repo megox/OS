@@ -83,56 +83,248 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		uint32 wsSize = env_page_ws_get_size(curenv);
 #endif
 
-		if(wsSize < (curenv->page_WS_max_size))
+		if(isPageReplacmentAlgorithmFIFO()){
+			if(wsSize < (curenv->page_WS_max_size))
 			{
 				//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
 				//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
 				// Write your code here, remove the panic and write your code
-					int ret3 = pf_read_env_page(curenv, (void*)fault_va);
-					//the page not exist in page file
-					if (ret3 == E_PAGE_NOT_EXIST_IN_PF){
-						if((fault_va<USER_HEAP_START || fault_va>USER_HEAP_MAX)
-							&& (fault_va>USTACKTOP||fault_va<USTACKBOTTOM)){
-						  sched_kill_env(curenv->env_id);
+
+				struct FrameInfo *new_frame ;
+				int ret = allocate_frame(&new_frame);
+				if(ret==0)
+				{
+					ret=map_frame(curenv->env_page_directory,new_frame,fault_va,PERM_USER|PERM_WRITEABLE|PERM_PRESENT);
+					if(ret==0)
+					{
+						int ret3 = pf_read_env_page(curenv, (void*)fault_va);
+						//the page not exist in page file
+						if (ret3 == E_PAGE_NOT_EXIST_IN_PF)
+						{
+							if((fault_va<USER_HEAP_START || fault_va>USER_HEAP_MAX)
+									&& (fault_va>USTACKTOP||fault_va<USTACKBOTTOM))
+							{
+								sched_kill_env(curenv->env_id);
+							}
+						}
+						struct WorkingSetElement*new_elm= env_page_ws_list_create_element(curenv,fault_va);
+						LIST_INSERT_TAIL(&(curenv->page_WS_list),new_elm);
+						if((curenv->page_WS_max_size)==LIST_SIZE(&(curenv->page_WS_list)))
+						{
+							curenv->page_last_WS_element=LIST_FIRST(&(curenv->page_WS_list));
+						}
+						else
+						{
+							curenv->page_last_WS_element=NULL;
 						}
 					}
-					struct FrameInfo *new_frame ;
-					int ret = allocate_frame(&new_frame);
-					if(ret==0){
-						ret=map_frame(curenv->env_page_directory,new_frame,fault_va,PERM_USER|PERM_WRITEABLE|PERM_PRESENT);
-						if(ret==0){
-						  struct WorkingSetElement*new_elm= env_page_ws_list_create_element(curenv,fault_va);
-						  LIST_INSERT_TAIL(&(curenv->page_WS_list),new_elm);
-						  new_frame->element=new_elm;
-						  if((curenv->page_WS_max_size)==LIST_SIZE(&(curenv->page_WS_list))){
-							  curenv->page_last_WS_element=LIST_FIRST(&(curenv->page_WS_list));
-						  }
-						  else{
-							  curenv->page_last_WS_element=NULL;
-						  }
-						}
-					}
+				}
+
 			}
 	else
 	{
 		//refer to the project presentation and documentation for details
-		if(isPageReplacmentAlgorithmFIFO())
-		{
 			//TODO: [PROJECT'23.MS3 - #1] [1] PAGE FAULT HANDLER - FIFO Replacement
 			// Write your code here, remove the panic and write your code
-			panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
-		}
-		if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
-		{
-			//TODO: [PROJECT'23.MS3 - #2] [1] PAGE FAULT HANDLER - LRU Replacement
-			// Write your code here, remove the panic and write your code
-			panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
+			//panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
 
-			//TODO: [PROJECT'23.MS3 - BONUS] [1] PAGE FAULT HANDLER - O(1) implementation of LRU replacement
+		bool last=0;          //check if it's last elm in tail of list
+		if(curenv->page_last_WS_element==LIST_LAST(&(curenv->page_WS_list))){
+			last=1;
+		}
+
+		struct FrameInfo *new_frame;
+		int ret = allocate_frame(&new_frame);
+		if(ret==0){
+		ret=map_frame(curenv->env_page_directory,new_frame,fault_va,PERM_USER|PERM_WRITEABLE|PERM_PRESENT);
+		if(ret==0){
+			int ret3 = pf_read_env_page(curenv, (void*)fault_va);
+			//the page not exist in page file
+			if (ret3 == E_PAGE_NOT_EXIST_IN_PF){
+				if((fault_va<USER_HEAP_START || fault_va>USER_HEAP_MAX)
+						&& (fault_va>USTACKTOP||fault_va<USTACKBOTTOM)){
+					sched_kill_env(curenv->env_id);
+				}
+			}
+
+			struct WorkingSetElement* victim=curenv->page_last_WS_element;
+			uint32 *ptr_page_table=NULL;
+			struct FrameInfo *old_frame=get_frame_info(curenv->env_page_directory,victim->virtual_address,&ptr_page_table);
+			get_page_table(curenv->env_page_directory,victim->virtual_address,&ptr_page_table);
+			int index=PTX(victim->virtual_address);
+			if((ptr_page_table[index]&PERM_MODIFIED)==PERM_MODIFIED)
+			{
+				pf_update_env_page(curenv,victim->virtual_address,old_frame);
+			}
+
+			env_page_ws_invalidate(curenv, victim->virtual_address);
+			unmap_frame(curenv->env_page_directory,victim->virtual_address);
+			struct WorkingSetElement*new_elm= env_page_ws_list_create_element(curenv,fault_va);
+			if(last==1){
+				LIST_INSERT_TAIL(&(curenv->page_WS_list),new_elm);
+			}
+			else
+			{
+				LIST_INSERT_BEFORE(&(curenv->page_WS_list),curenv->page_last_WS_element,new_elm);
+			}
+
+		}
+		}
+
+
+
+		if(last==1)
+		{
+			curenv->page_last_WS_element=LIST_FIRST(&(curenv->page_WS_list));
+		}
+
+
+	}
+		}
+	else
+	{
+
+	//refer to the project presentation and documentation for details
+	// FIRST WE NEED TO CHECK IF THE FAULTED VA IN THE SECONDE LIST OR NOT
+	//fault_va=ROUNDDOWN(fault_va,PAGE_SIZE);
+
+	uint32*page_table=NULL;
+	get_page_table(curenv->env_page_directory,fault_va,&page_table);
+	struct FrameInfo*check_frame=get_frame_info(curenv->env_page_directory,fault_va,&page_table);
+	uint32*page_table_2=NULL;
+	get_page_table(curenv->env_page_directory,ROUNDDOWN(fault_va,PAGE_SIZE),&page_table_2);
+	struct FrameInfo*check_frame_2=get_frame_info(curenv->env_page_directory,ROUNDDOWN(fault_va,PAGE_SIZE),&page_table_2);
+	//env_page_ws_print(curenv);
+	if(check_frame_2!=NULL)
+	check_frame=check_frame_2;
+
+	struct WorkingSetElement *exist=NULL;
+	if(check_frame!=NULL){
+	exist=check_frame->element;
+	}
+
+
+	if(exist!=NULL){
+	LIST_REMOVE(&(curenv->SecondList),exist);
+	check_frame->in_second=0;
+	pt_set_page_permissions(curenv->env_page_directory,exist->virtual_address,PERM_PRESENT,0);
+	if(LIST_SIZE(&(curenv->ActiveList))<curenv->ActiveListSize){
+	LIST_INSERT_HEAD(&(curenv->ActiveList),exist);
+	check_frame->in_active=1;
+	}
+
+	else{
+	struct WorkingSetElement *vectim=LIST_LAST(&(curenv->ActiveList));
+	uint32*page_table_vectim=NULL;
+	get_page_table(curenv->env_page_directory,vectim->virtual_address,&page_table_vectim);
+	struct FrameInfo*vectim_frame=get_frame_info(curenv->env_page_directory,vectim->virtual_address,&page_table_vectim);
+	vectim_frame->in_active=0;
+	vectim_frame->in_second=1;
+	LIST_REMOVE(&(curenv->ActiveList),vectim);
+	pt_set_page_permissions(curenv->env_page_directory,vectim->virtual_address,0,PERM_PRESENT);
+	LIST_INSERT_HEAD(&(curenv->SecondList),vectim);
+	LIST_INSERT_HEAD(&(curenv->ActiveList),exist);
+	check_frame->in_active=1;
+	}
+	}
+	else
+	{
+	struct FrameInfo* new_frame;
+	int ret = allocate_frame(&new_frame);
+	if(ret==0)
+	{
+		ret=map_frame(curenv->env_page_directory,new_frame,fault_va,PERM_USER|PERM_WRITEABLE|PERM_PRESENT);
+		if(ret==0)
+		{
+
+			int ret3 = pf_read_env_page(curenv, (void*)fault_va);
+			//the page not exist in page file
+			if (ret3 == E_PAGE_NOT_EXIST_IN_PF)
+			{
+			if((fault_va<USER_HEAP_START || fault_va>USER_HEAP_MAX)
+					&& (fault_va>USTACKTOP||fault_va<USTACKBOTTOM)){
+			unmap_frame(curenv->env_page_directory,fault_va);
+				//	cprintf("0000000000000000=%x\n",fault_va);
+				sched_kill_env(curenv->env_id);
+			}
+	//					else
+	//						ret=pf_update_env_page(curenv,fault_va,new_frame);
+		//	WE WILL UPDATE THE PAGE FILE TO CONTAIN THE FAULTED PAGE
+
+
+
+			}
+			if(ret==0)
+			{
+
+				struct WorkingSetElement*new_elm= env_page_ws_list_create_element(curenv,fault_va);
+				if(LIST_SIZE(&(curenv->ActiveList))+LIST_SIZE(&(curenv->SecondList))<curenv->ActiveListSize+curenv->SecondListSize)
+				{
+
+					//THRE IS STILL A PLACE IN THE MEMORY SO WE WILL DO A LRU PLACMENT
+					if(LIST_SIZE(&(curenv->ActiveList))<curenv->ActiveListSize)
+					{
+						//pt_set_page_permissions(curenv->env_page_directory,new_elm->virtual_address,PERM_PRESENT,0);
+
+						LIST_INSERT_HEAD(&(curenv->ActiveList),new_elm);
+						new_frame->in_active=1;
+					}
+					else
+					{
+
+						struct WorkingSetElement *vectim=LIST_LAST(&(curenv->ActiveList));
+						uint32*page_table_vectim=NULL;
+						get_page_table(curenv->env_page_directory,vectim->virtual_address,&page_table_vectim);
+						struct FrameInfo*vectim_frame=get_frame_info(curenv->env_page_directory,vectim->virtual_address,&page_table_vectim);
+						vectim_frame->in_active=0;
+						vectim_frame->in_second=1;
+						LIST_REMOVE(&(curenv->ActiveList),vectim);
+						pt_set_page_permissions(curenv->env_page_directory,vectim->virtual_address,0,PERM_PRESENT);
+						LIST_INSERT_HEAD(&(curenv->SecondList),vectim);
+						LIST_INSERT_HEAD(&(curenv->ActiveList),new_elm);
+						new_frame->in_active=1;
+					}
+				}
+				else
+				{
+
+
+					//THRE IS NO PLACE IN THE MEMORY SO WE WILL DO A LRU REPLACMENT
+					struct WorkingSetElement *dead=LIST_LAST(&(curenv->SecondList));
+					//LIST_REMOVE(&(curenv->SecondList),dead);
+
+					if((pt_get_page_permissions(curenv->env_page_directory,dead->virtual_address)&PERM_MODIFIED)==PERM_MODIFIED){
+
+						uint32*dead_page_table = NULL;
+						get_page_table(curenv->env_page_directory,dead->virtual_address,&dead_page_table);
+						struct FrameInfo*dead_frame=get_frame_info(curenv->env_page_directory,dead->virtual_address,&dead_page_table);
+						pf_update_env_page(curenv,dead->virtual_address,dead_frame);
+						//LIST_REMOVE(&(curenv->SecondList),dead);
+					}
+				  // env_page_ws_invalidate(curenv,dead->virtual_address);
+					unmap_frame(curenv->env_page_directory,dead->virtual_address);
+					LIST_REMOVE(&(curenv->SecondList),dead);
+					working_set_elm_free(dead);
+					struct WorkingSetElement *vectim=LIST_LAST(&(curenv->ActiveList));
+					uint32*page_table_vectim=NULL;
+					get_page_table(curenv->env_page_directory,vectim->virtual_address,&page_table_vectim);
+					struct FrameInfo *vectim_frame=get_frame_info(curenv->env_page_directory,vectim->virtual_address,&page_table_vectim);
+					vectim_frame->in_active=0;
+					vectim_frame->in_second=1;
+					LIST_REMOVE(&(curenv->ActiveList),vectim);
+					pt_set_page_permissions(curenv->env_page_directory,vectim->virtual_address,0,PERM_PRESENT);
+					LIST_INSERT_HEAD(&(curenv->SecondList),vectim);
+
+					LIST_INSERT_HEAD(&(curenv->ActiveList),new_elm);
+					new_frame->in_active=1;
+
+				}
+			}
 		}
 	}
+	}
+ }
 }
-
 void __page_fault_handler_with_buffering(struct Env * curenv, uint32 fault_va)
 {
 	panic("this function is not required...!!");

@@ -380,15 +380,18 @@ void fault_handler(struct Trapframe *tf)
            int index=PTX(fault_va);
            if(page_table[index]&PERM_PRESENT){
         	   if ((page_table[index] & PERM_USER)!=PERM_USER) {
+        		   cprintf("a \n");
         	  	sched_kill_env(curenv->env_id);
         	   }
         	   if((page_table[index] & PERM_WRITEABLE)!=PERM_WRITEABLE){
+        		   cprintf("aa \n");
         	   	sched_kill_env(curenv->env_id);
         	   }
            }
            else{
         	   if(fault_va<=USER_HEAP_MAX && fault_va >= USER_HEAP_START){
         		   if((page_table[index] & PERM_AVAILABLE)!= PERM_AVAILABLE){
+        			   cprintf("aaa \n");
         		       sched_kill_env(curenv->env_id);
         		   }
         	   }

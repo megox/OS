@@ -150,7 +150,21 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		unmap_frame(e->env_page_directory , va);
 		va += PAGE_SIZE;
 	}
-	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
+	struct WorkingSetElement*elm;
+	if(e->page_last_WS_element!=NULL)
+		{
+		LIST_FOREACH(elm,&(e->page_WS_list))
+	   	{
+			if(elm==e->page_last_WS_element)
+			{
+				break;
+			}
+
+				LIST_REMOVE(&(e->page_WS_list),elm);
+				LIST_INSERT_TAIL(&(e->page_WS_list),elm);
+
+	   	}
+	}
 
 }
 

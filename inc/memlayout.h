@@ -217,6 +217,8 @@ struct FrameInfo {
 
 	uint32 size;//mego_o
 	uint32 virt;//mego_o
+	int in_active;//bogh
+	int in_second;//bogh
 };
 
 #endif /* !__ASSEMBLER__ */
