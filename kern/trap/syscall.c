@@ -525,7 +525,8 @@ void* sys_sbrk(int increment)
 			 uint32 va = ROUNDUP(curenv->user_brk , PAGE_SIZE) - PAGE_SIZE;
 			 for(int i = 0;i<pages_to_dealloc;i++){
 		  	   	env_page_ws_invalidate(curenv, (va));//
-				unmap_frame(curenv->env_page_directory , va);
+		  	  if(isPageReplacmentAlgorithmFIFO())
+		  		  unmap_frame(curenv->env_page_directory , va);
 				uint32* ptr_page_table = NULL;
 				get_page_table(curenv->env_page_directory,va,&ptr_page_table);
 				ptr_page_table[PTX(va)] = ptr_page_table[PTX(va)] & (~PERM_AVAILABLE);
@@ -536,7 +537,8 @@ void* sys_sbrk(int increment)
 
 	  	    if(curenv->user_brk - ROUNDDOWN(curenv->user_brk,PAGE_SIZE) <= -increment){
 	  	    	uint32 va = curenv->user_brk;
-	  	    	env_page_ws_invalidate(curenv, (va));//
+	  	    	env_page_ws_invalidate(curenv, ROUNDDOWN(va,PAGE_SIZE));//
+	  	    	if(isPageReplacmentAlgorithmFIFO())
 	  	    	unmap_frame(curenv->env_page_directory , ROUNDDOWN(va,PAGE_SIZE));
 	  	    	uint32* ptr_page_table = NULL;
 	  	    	get_page_table(curenv->env_page_directory,ROUNDDOWN(va,PAGE_SIZE),&ptr_page_table);

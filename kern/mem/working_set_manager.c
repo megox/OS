@@ -29,16 +29,27 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
  // t2repn m4 m7tagin da hwa bi7gz bs w himlaha b3din b addres tani
 	return ret;
 }
+
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
 		bool found = 0;
-		struct WorkingSetElement *ptr_WS_element = NULL;
-		LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
-		{
-			if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+		uint32*page_table=NULL;
+		get_page_table(e->env_page_directory,virtual_address,&page_table);
+		struct FrameInfo*Active_frame=get_frame_info(e->env_page_directory,virtual_address,&page_table);
+		uint32*page_table_2=NULL;
+		get_page_table(e->env_page_directory,ROUNDDOWN(virtual_address,PAGE_SIZE),&page_table_2);
+		struct FrameInfo*Active_frame_2=get_frame_info(e->env_page_directory,ROUNDDOWN(virtual_address,PAGE_SIZE),&page_table_2);
+		if(Active_frame_2!=NULL)
+		Active_frame=Active_frame_2;
+			if(Active_frame!=NULL){
+
+		struct WorkingSetElement *ptr_WS_element = Active_frame->element;
+			if(Active_frame->in_active==1)
 			{
+				Active_frame->in_active=0;
+
 				struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
 				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
 				LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
@@ -46,29 +57,33 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 
 				if(ptr_tmp_WS_element != NULL)
 				{
+					uint32*non_vectim_table=NULL;
+					get_page_table(e->env_page_directory,ptr_tmp_WS_element->virtual_address,&non_vectim_table);
+					struct FrameInfo*non_vectim_frame=get_frame_info(e->env_page_directory,ptr_tmp_WS_element->virtual_address,&non_vectim_table);
 					LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
 					LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
+					non_vectim_frame->in_second=0;
+					non_vectim_frame->in_active=1;
 					pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
 				}
 				found = 1;
-				break;
+
 			}
-		}
+
 
 		if (!found)
 		{
-			ptr_WS_element = NULL;
-			LIST_FOREACH(ptr_WS_element, &(e->SecondList))
-			{
-				if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
-				{
+
+					Active_frame->in_second=0;
+
 					unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
 					LIST_REMOVE(&(e->SecondList), ptr_WS_element);
 
 					kfree(ptr_WS_element);
 
-					/*EDIT*/ break;
-				}
+					/*EDIT*/
+
+
 			}
 		}
 	}
@@ -88,7 +103,6 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 			}
 	}
 }
-
 
 void env_page_ws_print(struct Env *e)
 {

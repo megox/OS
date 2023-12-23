@@ -159,13 +159,10 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 			{
 				break;
 			}
-
 				LIST_REMOVE(&(e->page_WS_list),elm);
 				LIST_INSERT_TAIL(&(e->page_WS_list),elm);
-
 	   	}
 	}
-
 }
 
 //=====================================

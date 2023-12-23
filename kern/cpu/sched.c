@@ -225,15 +225,9 @@ struct Env* fos_scheduler_BSD()
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)
 //========================================
-int cnt = 1;
+int cnt = 0;
 void clock_interrupt_handler()
 {
-//	cprintf("\n nice : %d \n",curenv->nice_value);
-//	cprintf("\n recent : %d \n",curenv->recent_cpu_time / FIX_F);
-//	cprintf("\n current priority : %d \n",curenv->priority);
-
-//	cprintf("\n current priority : %d \n",curenv->priority);
-
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	if(scheduler_method == SCH_BSD)
 	{
@@ -241,9 +235,9 @@ void clock_interrupt_handler()
 		curenv->recent_cpu_time += FIX_F;
 		// update recent_cpu every 1 second for every processes
 		// calculate load_avg
-	    if((timer_ticks() * quantums[0]) % 1000 == 0){
-//	      cprintf("second ()()() \n");
-
+	    if(cnt > 1000){ // (timer_ticks() * quantums[0]) % 1000 == 0
+//	      cprintf("second (%d) \n",timer_ticks());
+          cnt = cnt % 1000;
 		  //load_avg
 		  fixed_point_t a = fix_unscale(__mk_fix(59 * FIX_F) , 60); //59/60
 		  fixed_point_t b = fix_mul(a,__mk_fix(load_avg)); //59 / 60 * load
@@ -280,7 +274,7 @@ void clock_interrupt_handler()
     	  // update for curenv
     	  fixed_point_t y2 = fix_unscale(__mk_fix(curenv->recent_cpu_time) , 4);
 		  int p2 = PRI_MAX - fix_round(y2) - (curenv->nice_value * 2);
-		  if(p2 > 63) p2 = 63;
+		  if(p2 > num_of_ready_queues - 1) p2 = num_of_ready_queues - 1;
 		  if(p2 < 0) p2 = 0;
 		  curenv->priority = p2;
     	  ////////////////////////////////////////////////////////////////////////////
@@ -290,7 +284,7 @@ void clock_interrupt_handler()
     			  LIST_FOREACH(e, &env_ready_queues[i]){
     				  fixed_point_t y = fix_unscale(__mk_fix(e->recent_cpu_time) , 4);
 					  int p = PRI_MAX - fix_round(y) - (e->nice_value * 2);
-					  if(p > 63) p = 63;
+					  if(p > num_of_ready_queues - 1) p = num_of_ready_queues - 1;
 					  if(p < 0) p = 0;
 					  e->priority = p;
      			  }
@@ -310,6 +304,7 @@ void clock_interrupt_handler()
     		  }
     	  }
       }
+      cnt+=quantums[0];
 }
 
 	/********DON'T CHANGE THIS LINE***********/

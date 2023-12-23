@@ -142,6 +142,7 @@ void initialize_frame_info(struct FrameInfo *ptr_frame_info)
 
 //extern void env_free(struct Env *e);
 
+
 int allocate_frame(struct FrameInfo **ptr_frame_info)
 {
 	*ptr_frame_info = LIST_FIRST(&free_frame_list);
@@ -149,10 +150,55 @@ int allocate_frame(struct FrameInfo **ptr_frame_info)
 	if (*ptr_frame_info == NULL)
 	{
 		//TODO: [PROJECT'23.MS3 - BONUS] Free RAM when it's FULL
-		panic("ERROR: Kernel run out of memory... allocate_frame cannot find a free frame.\n");
+        //panic("ERROR: Kernel run out of memory... allocate_frame cannot find a free frame.\n");
 		// When allocating new frame, if there's no free frame, then you should:
 		//	1-	If any process has exited (those with status ENV_EXIT), then remove one or more of these exited processes from the main memory
 		//	2-	otherwise, free at least 1 frame from the user working set by applying the FIFO algorithm
+		for(int i = num_of_ready_queues - 1; i>=0 ; i--)
+		{
+			if(LIST_SIZE(&env_ready_queues[i]))
+			{
+				struct Env *e;
+				LIST_FOREACH(e , &env_ready_queues[i])
+				{
+					if(e->env_status == ENV_EXIT)
+					{
+//					cprintf("\n Iam Env exited ya ziad \n");
+						env_free(e);
+					}
+				}
+			}
+		}
+		if(LIST_SIZE(&free_frame_list))
+		{
+			*ptr_frame_info = LIST_FIRST(&free_frame_list);
+		}
+		else
+		{
+			struct WorkingSetElement * secondList_elem = NULL;
+			for(int i = num_of_ready_queues - 1; i>=0 ; i--)
+			{
+				if(LIST_SIZE(&env_ready_queues[i]))
+				{
+					struct Env *e;
+					LIST_FOREACH(e , & env_ready_queues[i])
+					{
+						secondList_elem = LIST_LAST(&(e->SecondList));
+						if(secondList_elem != NULL)
+						{
+//					cprintf("\n Iam second list frame ya ziad \n");
+							env_page_ws_invalidate(e
+									, secondList_elem->virtual_address);
+						}
+					}
+				}
+			}
+			if(LIST_SIZE(&free_frame_list))
+			{
+				*ptr_frame_info = LIST_FIRST(&free_frame_list);
+			}
+		}
+
 	}
 
 	LIST_REMOVE(&free_frame_list,*ptr_frame_info);
@@ -172,6 +218,9 @@ int allocate_frame(struct FrameInfo **ptr_frame_info)
 	initialize_frame_info(*ptr_frame_info);
 	return 0;
 }
+
+
+
 
 //
 // Return a frame to the free_frame_list.

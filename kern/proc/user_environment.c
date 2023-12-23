@@ -440,36 +440,7 @@ void env_run(struct Env *e)
 // 3) FREE ENV FROM THE SYSTEM:
 //===============================
 // Frees environment "e" and all memory it uses.
-//
-//void env_free(struct Env *e)
-//{
-//	/*REMOVE THIS LINE BEFORE START CODING*/
-//	return;
-//	/**************************************/
-//
-//	//TODO: [PROJECT'23.MS3 - BONUS] EXIT ENV: env_free
-//	// your code is here, remove the panic and write your code
-//	{
-//		panic("env_free() is not implemented yet...!!");
-//
-//
-//
-//
-//
-//
-//	}
-//
-//	// [9] remove this program from the page file
-//	/*(ALREADY DONE for you)*/
-//	pf_free_env(e); /*(ALREADY DONE for you)*/ // (removes all of the program pages from the page file)
-//	/*========================*/
-//
-//	// [10] free the environment (return it back to the free environment list)
-//	/*(ALREADY DONE for you)*/
-//	free_environment(e); /*(ALREADY DONE for you)*/ // (frees the environment (returns it back to the free environment list))
-//	/*========================*/
-//
-//}
+
 
 
 void env_free(struct Env *e)
@@ -483,33 +454,44 @@ void env_free(struct Env *e)
 	{
 		//panic("env_free() is not implemented yet...!!");
 
-
 		ready_proc--;
 
 		//remove from Working set
 		struct WorkingSetElement * removed_element;
 		LIST_FOREACH(removed_element , &e->page_WS_list)
 		{
-			unmap_frame(e->env_page_directory
-					, (uint32)removed_element->virtual_address);
+			env_page_ws_invalidate(e
+					, removed_element->virtual_address);
+
+			if(isPageReplacmentAlgorithmFIFO())
+				  unmap_frame(e->env_page_directory
+						  , removed_element->virtual_address);
 		}
+
 		//remove from LRU set
 		LIST_FOREACH(removed_element , &e->ActiveList)
 		{
-			unmap_frame(e->env_page_directory
-					, (uint32)removed_element->virtual_address);
+			env_page_ws_invalidate(e
+					, removed_element->virtual_address);
 		}
 		LIST_FOREACH(removed_element , &e->SecondList)
 		{
-			unmap_frame(e->env_page_directory
-					,(uint32)removed_element->virtual_address);
+			env_page_ws_invalidate(e
+					, removed_element->virtual_address);
+		}
+
+		// All page tables in the entire user virtual memory
+
+		uint32* pd = e->env_page_directory;
+		for(int i = 0 ; i<1024 ; i++)
+		{
+			pd_clear_page_dir_entry(e->env_page_directory,*pd);
+			unmap_frame(e->env_page_directory ,*pd);
+			pd++;
 		}
 
 		//Remove Directory Table
-		struct FrameInfo * ptr = to_frame_info(e->env_cr3);
-
-		unmap_frame(ptr_page_directory
-				,(uint32)ptr->va);
+		unmap_frame(ptr_page_directory,(uint32)e->env_page_directory);
 	}
 
 	// [9] remove this program from the page file

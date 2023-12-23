@@ -378,7 +378,12 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	//special cases
 
 	if((void*)va == NULL){
-		return (void *)alloc_block_FF(new_size);
+			void * ret = alloc_block_FF(new_size);
+			if(ret == (void*)NULL){
+				return (struct BlockMetaData*) va;//no suitable block
+			}
+			else
+		return (void *)ret;
 	}
 	else if(new_size == 0){
 		free_block((void*)va);
@@ -429,9 +434,17 @@ void *realloc_block_FF(void* va, uint32 new_size)
 				else{
 					void * ret = alloc_block_FF(new_size-sizeOfMetaData());
 					if(ret == (void*)NULL){
-						return (void *)-1;//no suitable block
+						return (struct BlockMetaData*) va;//no suitable block
 					}else{
 						free_block((void*)va);
+						struct BlockMetaData *new_block=(struct BlockMetaData*)((void*)ret - sizeOfMetaData());
+						uint16* v1=(uint16*)(va);
+						uint16 v3=*v1;
+						uint16* v2=(uint16*)ret;
+						while(v2!=(uint16*)((uint32)new_block+new_size)){
+							*(v2)=v3;
+							v2++;
+						}
 						return (struct BlockMetaData*) ret; //the new allocated _blk
 					}
 				}
@@ -439,9 +452,17 @@ void *realloc_block_FF(void* va, uint32 new_size)
 			else{
 				void * ret = alloc_block_FF(new_size-sizeOfMetaData());
 				if(ret == (void*)NULL){
-				return (void *)-1;//no suitable block
+				return (struct BlockMetaData*) va;//no suitable block
 				}else{
 					free_block((void*)va);
+					struct BlockMetaData *new_block=(struct BlockMetaData*)((void*)ret - sizeOfMetaData());
+					uint16* v1=(uint16*)(va);
+					uint16 v3=*v1;
+					uint16* v2=(uint16*)ret;
+					while(v2!=(uint16*)((uint32)new_block+new_size)){
+						*(v2)=v3;
+						v2++;
+					}
 					return (struct BlockMetaData*) ret; //the new allocated _blk
 				}
 			}
@@ -449,10 +470,18 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		else if(blk==tail){
 			void * ret = alloc_block_FF(new_size-sizeOfMetaData());
 			if(ret == (void*)NULL){
-			  return (void *)-1;//no suitable block
+			  return (struct BlockMetaData*) va;//no suitable block
 			}
 			else{
 			  free_block((void*)va);
+			  struct BlockMetaData *new_block=(struct BlockMetaData*)((void*)ret - sizeOfMetaData());
+			  uint16 * v1=(uint16*)(va);
+			  uint16   v3=*v1;
+			  uint16*  v2=(uint16*)ret;
+			  while(v2!=(uint16*)((uint32)new_block+new_size)){
+				  *(v2)=v3;
+				  v2++;
+			  }
 			  return (struct BlockMetaData*) ret; //the new allocated _blk
 			}
 		}

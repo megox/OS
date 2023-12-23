@@ -242,8 +242,7 @@ void *krealloc(void *virtual_address, uint32 new_size)
 		return kmalloc(new_size);
 	}
 
-	if(vir_add  >= da_Start
-			&& vir_add  <= brk)
+	if(vir_add  >= da_Start && vir_add  <= brk)
 	{
 		if(new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
 		{
