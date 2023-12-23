@@ -441,22 +441,75 @@ void env_run(struct Env *e)
 //===============================
 // Frees environment "e" and all memory it uses.
 //
+//void env_free(struct Env *e)
+//{
+//	/*REMOVE THIS LINE BEFORE START CODING*/
+//	return;
+//	/**************************************/
+//
+//	//TODO: [PROJECT'23.MS3 - BONUS] EXIT ENV: env_free
+//	// your code is here, remove the panic and write your code
+//	{
+//		panic("env_free() is not implemented yet...!!");
+//
+//
+//
+//
+//
+//
+//	}
+//
+//	// [9] remove this program from the page file
+//	/*(ALREADY DONE for you)*/
+//	pf_free_env(e); /*(ALREADY DONE for you)*/ // (removes all of the program pages from the page file)
+//	/*========================*/
+//
+//	// [10] free the environment (return it back to the free environment list)
+//	/*(ALREADY DONE for you)*/
+//	free_environment(e); /*(ALREADY DONE for you)*/ // (frees the environment (returns it back to the free environment list))
+//	/*========================*/
+//
+//}
+
+
 void env_free(struct Env *e)
 {
 	/*REMOVE THIS LINE BEFORE START CODING*/
-	return;
+//	return;
 	/**************************************/
 
 	//TODO: [PROJECT'23.MS3 - BONUS] EXIT ENV: env_free
 	// your code is here, remove the panic and write your code
 	{
-		panic("env_free() is not implemented yet...!!");
+		//panic("env_free() is not implemented yet...!!");
 
 
+		ready_proc--;
 
+		//remove from Working set
+		struct WorkingSetElement * removed_element;
+		LIST_FOREACH(removed_element , &e->page_WS_list)
+		{
+			unmap_frame(e->env_page_directory
+					, (uint32)removed_element->virtual_address);
+		}
+		//remove from LRU set
+		LIST_FOREACH(removed_element , &e->ActiveList)
+		{
+			unmap_frame(e->env_page_directory
+					, (uint32)removed_element->virtual_address);
+		}
+		LIST_FOREACH(removed_element , &e->SecondList)
+		{
+			unmap_frame(e->env_page_directory
+					,(uint32)removed_element->virtual_address);
+		}
 
+		//Remove Directory Table
+		struct FrameInfo * ptr = to_frame_info(e->env_cr3);
 
-
+		unmap_frame(ptr_page_directory
+				,(uint32)ptr->va);
 	}
 
 	// [9] remove this program from the page file
@@ -600,7 +653,8 @@ int allocate_environment(struct Env** e)
 // Free the given environment "e", simply by adding it to the free environment list.
 void free_environment(struct Env* e)
 {
-    ready_proc--;//load-- (mego_o)//
+//    cprintf("ssssfsssss \n");
+//	ready_proc--;//load-- (mego_o)//
 
 	memset(e, 0, sizeof(*e));
 	e->env_status = ENV_FREE;
@@ -800,8 +854,10 @@ void initialize_uheap_dynamic_allocator(struct Env* e, uint32 daStart, uint32 da
 //
 void initialize_environment(struct Env* e, uint32* ptr_user_page_directory, unsigned int phys_user_page_directory)
 {
-//	e.nice_value=0 //mego_o
-//	e.recent_cpu_time=0 ;//mego_o
+
+    //	e.nice_value=0 //mego_o
+    //	e.recent_cpu_time=0 ;//mego_o
+
 	//panic("initialize_environment function is not completed yet") ;
 	// [1] initialize the kernel portion of the new environment's address space.
 	// [2] set e->env_pgdir and e->env_cr3 accordingly,
@@ -892,6 +948,12 @@ void initialize_environment(struct Env* e, uint32* ptr_user_page_directory, unsi
 
 	//Completes other environment initializations, (envID, status and most of registers)
 	complete_environment_initialization(e);
+
+//
+//	    cprintf("nice in  = %d \n",e->nice_value);
+//		cprintf("env get nice value = %d \n",env_get_nice(e));
+		e->priority = PRI_MAX - (e->nice_value * 2);
+//		cprintf("priority = %d \n",e->nice_value);
 }
 
 //========================================================

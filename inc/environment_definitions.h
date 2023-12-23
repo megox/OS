@@ -80,7 +80,7 @@ LIST_HEAD(WS_List, WorkingSetElement);		// Declares 'struct WS_list'
 
 
 struct Env {
-	char mark[200000];
+//	char mark[200000];
 	//================
 	/*MAIN INFO...*/
 	//================

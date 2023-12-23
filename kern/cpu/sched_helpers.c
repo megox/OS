@@ -552,10 +552,23 @@ int env_get_nice(struct Env* e)
 void env_set_nice(struct Env* e, int nice_value)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
+
 	e->nice_value = nice_value;
-	int x = env_get_recent_cpu(e) / 4;
-	int p = PRI_MAX - x - (e->nice_value * 2);
-	e->priority = p;
+	if(e->env_status != ENV_NEW)
+	{
+//		fixed_point_t x = fix_unscale(e->recent_cpu_time , 4);
+//		int y = fix_round(x);
+		fixed_point_t x = __mk_fix(e->recent_cpu_time);
+		fixed_point_t y = fix_unscale(x , 4);
+		int p = PRI_MAX - fix_round(y) - (e->nice_value * 2);
+		if(p < 0) p = 0;
+		else if (p > num_of_ready_queues - 1) p = num_of_ready_queues - 1;
+ 		e->priority = p;
+ 		cprintf("d5ltt \n");
+ 		cprintf("prio  = %d , nice = %d \n",e->priority,e->nice_value);
+
+	}
+
 }
 
 int env_get_recent_cpu(struct Env* e)

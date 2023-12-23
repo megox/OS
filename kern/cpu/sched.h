@@ -55,6 +55,7 @@ int scheduler_status ;
 #define PRI_MAX 63
 int64 ticks;
 int64 timer_ticks() ;
+//uint32 load_avg , ready_proc;
 struct Env* fos_scheduler_BSD();
 void sched_init_BSD(uint8 numOfLevels, uint8 quantum);
 uint32 isSchedMethodBSD();

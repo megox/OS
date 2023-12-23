@@ -7,6 +7,10 @@ _main(void)
 
 	int i1=0;
 	int i2=0;
+	int x =0;
+	for(int i = 0;i<50000000;i++){
+		x++;
+	}
 
 	i1 = strtol("1", NULL, 10);
 	i2 = strtol("2", NULL, 10);

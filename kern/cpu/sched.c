@@ -57,10 +57,14 @@ fos_scheduler(void)
 		//If the curenv is still exist, then insert it again in the ready queue
 		if (curenv != NULL)
 		{
+			//Ziad enqueue 0
 			enqueue(&(env_ready_queues[0]), curenv);
 		}
 
 		//Pick the next environment from the ready queue
+		//Ziad
+		//dequeue 0
+//		LIST_REMOVE(&(env_ready_queues[curenv->priority]), curenv);
 		next_env = dequeue(&(env_ready_queues[0]));
 
 		//Reset the quantum
@@ -201,17 +205,19 @@ struct Env* fos_scheduler_BSD()
 {
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
 
-
-	for(int i = num_of_ready_queues - 1 ; i >= 0;i--){
+	if(curenv != NULL)
+	{
+		enqueue(&env_ready_queues[curenv->priority] , curenv);
+	}
+	for(int i = num_of_ready_queues - 1 ; i >= 0 ; i--){
 		if(LIST_SIZE(&env_ready_queues[i]) != 0){
-			struct Env* e = LIST_FIRST(&env_ready_queues[i]);
-			cprintf("id  %d",e->env_id);
-//			cprintf("pr %d recent %d load %d nice %d \n",e->priority , e->recent_cpu_time,load_avg,e->nice_value);
-			LIST_REMOVE(&env_ready_queues[i],e);
-			LIST_INSERT_TAIL(&env_ready_queues[i],e);
+			kclock_set_quantum(quantums[0]);
+			struct Env* e = dequeue(&env_ready_queues[i]);
 			return e;
 		}
 	}
+
+	load_avg = 0;
 	return NULL;
 }
 
@@ -219,62 +225,92 @@ struct Env* fos_scheduler_BSD()
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)
 //========================================
-int cnt = 0;
+int cnt = 1;
 void clock_interrupt_handler()
 {
-	cprintf("pr : %d \n",curenv->priority);
-	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
-	{
+//	cprintf("\n nice : %d \n",curenv->nice_value);
+//	cprintf("\n recent : %d \n",curenv->recent_cpu_time / FIX_F);
+//	cprintf("\n current priority : %d \n",curenv->priority);
 
+//	cprintf("\n current priority : %d \n",curenv->priority);
+
+	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
+	if(scheduler_method == SCH_BSD)
+	{
 	    //update recent_cpu every 1 tick for running process
-	    curenv->recent_cpu_time++;
+		curenv->recent_cpu_time += FIX_F;
 		// update recent_cpu every 1 second for every processes
 		// calculate load_avg
-		if(cnt%quantums[0]==0) cnt = 0;
-		if((timer_ticks() * quantums[0] - (quantums[0] - (1000 % quantums[0]) + cnt)) % 1000 == 0){
-		  cnt++;
+	    if((timer_ticks() * quantums[0]) % 1000 == 0){
+//	      cprintf("second ()()() \n");
+
 		  //load_avg
 		  fixed_point_t a = fix_unscale(__mk_fix(59 * FIX_F) , 60); //59/60
 		  fixed_point_t b = fix_mul(a,__mk_fix(load_avg)); //59 / 60 * load
 		  fixed_point_t a2 = fix_unscale(__mk_fix(1 * FIX_F) , 60);//1 / 60
 		  fixed_point_t b2 = fix_scale(a2,ready_proc);//1 / 60 * ready
-			fixed_point_t new_load = fix_add(b,b2);
+		  fixed_point_t new_load = fix_add(b,b2);
 		  load_avg = (int)new_load.f;
-		  //recent_cpu
-		  for(int i = 0 ; i < num_of_ready_queues ;i++){
+
+
+		  //recent_cpu for curenv
+		  a = fix_scale(__mk_fix(load_avg),2);
+		  a2 = fix_add(a,__mk_fix(FIX_F));
+		  fixed_point_t a3 = fix_mul(fix_div(a,a2),__mk_fix(curenv->recent_cpu_time));
+		  fixed_point_t new_recent =fix_add(a3,__mk_fix(curenv->nice_value*FIX_F));
+		  curenv->recent_cpu_time = new_recent.f;
+
+		  //recent_cpu for all
+		  for(int i = num_of_ready_queues-1 ; i >= 0 ; i--){
 			  struct Env* e;
 			  if(LIST_SIZE(&env_ready_queues[i])!= 0){
 				  LIST_FOREACH(e, &env_ready_queues[i]){
-							  fixed_point_t a = fix_scale(__mk_fix(load_avg),2);
-							  fixed_point_t a2 = fix_add(a,__mk_fix(FIX_F));
-								fixed_point_t a3 = fix_mul(fix_div(a,a2),__mk_fix(e->recent_cpu_time));
-							  fixed_point_t new_recent = fix_add(a3,__mk_fix(e->nice_value*FIX_F));
-							  e->recent_cpu_time = (int32)new_recent.f;
-						  }
+					  fixed_point_t a = fix_scale(__mk_fix(load_avg),2);
+					  fixed_point_t a2 = fix_add(a,__mk_fix(FIX_F));
+					  fixed_point_t a3 = fix_mul(fix_div(a,a2),__mk_fix(e->recent_cpu_time));
+					  fixed_point_t new_recent =fix_add(a3,__mk_fix(e->nice_value*FIX_F));
+					  e->recent_cpu_time = new_recent.f;
+				  }
 			  }
 		  }
 		}
 
-
 	  //update priority every 4 tick
       if(timer_ticks() % 4 == 0){
-    	  for(int i = 0 ; i < num_of_ready_queues ;i++){
+    	  // update for curenv
+    	  fixed_point_t y2 = fix_unscale(__mk_fix(curenv->recent_cpu_time) , 4);
+		  int p2 = PRI_MAX - fix_round(y2) - (curenv->nice_value * 2);
+		  if(p2 > 63) p2 = 63;
+		  if(p2 < 0) p2 = 0;
+		  curenv->priority = p2;
+    	  ////////////////////////////////////////////////////////////////////////////
+    	  for(int i = num_of_ready_queues - 1 ; i >= 0 ; i--){
     		  struct Env* e;
     		  if(LIST_SIZE(&env_ready_queues[i])!= 0){
     			  LIST_FOREACH(e, &env_ready_queues[i]){
-					  int x = env_get_recent_cpu(e) / 4;
-					  int p = PRI_MAX - x - (e->nice_value * 2);
+    				  fixed_point_t y = fix_unscale(__mk_fix(e->recent_cpu_time) , 4);
+					  int p = PRI_MAX - fix_round(y) - (e->nice_value * 2);
+					  if(p > 63) p = 63;
+					  if(p < 0) p = 0;
 					  e->priority = p;
-					  LIST_REMOVE(&env_ready_queues[i],e);
-					  LIST_INSERT_TAIL(&env_ready_queues[p],e);
      			  }
-
     		  }
-
+    	  }
+    	  for(int i = num_of_ready_queues - 1; i >= 0 ; i--){
+    		  struct Env* e;
+    		  if(LIST_SIZE(&env_ready_queues[i])!= 0)
+    		  {
+    			  LIST_FOREACH(e, &env_ready_queues[i]){
+    				  if(e->priority != i)
+    				  {
+						  LIST_REMOVE(&env_ready_queues[i],e);
+						  enqueue(&env_ready_queues[e->priority],e);
+    				  }
+    			  }
+    		  }
     	  }
       }
-	}
-
+}
 
 	/********DON'T CHANGE THIS LINE***********/
 	ticks++ ;
